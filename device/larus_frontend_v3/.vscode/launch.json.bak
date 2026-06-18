@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+       {
+        "name": "deb vario",
+        "type": "probe-rs-debug",
+        "request": "launch",
+        "cwd": "${workspaceRoot}",
+        "runtimeExecutable": "probe-rs",
+        "chip": "STM32H747XIHx",
+        "preLaunchTask": "Cargo Build (debug)",
+        "flashingConfig": {
+          "flashingEnabled": true,
+          "haltAfterReset": false,
+          "formatOptions": {
+            "binaryFormat": "elf"
+          }
+        },
+        "coreConfigs": [
+          {
+            "coreIndex": 0,
+            "programBinary": "./target/thumbv7em-none-eabihf/debug/vario",
+            "svdFile": "${workspaceRoot}/STM32H747_CM7.svd",
+          }
+        ],
+        "consoleLogLevel": "Console"
+      }
+    ]
+  }
