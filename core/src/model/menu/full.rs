@@ -18,6 +18,9 @@ pub const VIEW_STRAIGHT_IDX: usize = 13;
 pub const VIEW_CIRCLING_IDX: usize = 14;
 pub const USAGE_MODE_AND_PROFILE_IDX: usize = 15;
 pub const MORE_SETTINGS_IDX: usize = 16;
+pub const SOUND_IDX: usize = 17;
+pub const FLASH_CONTROL_IDX: usize = 18;
+pub const TEST_FUNCTION_IDX: usize = 19;
 
 pub const MENU_LIST: &[Menu] = &[
     ROOT,
@@ -37,6 +40,9 @@ pub const MENU_LIST: &[Menu] = &[
     VIEW_CIRCLING,
     USAGE_MODE_AND_PROFILE,
     MORE_SETTINGS,
+    SOUND,
+    FLASH_CONTROL,
+    TEST_FUNCTION,
 ];
 
 pub const SETTINGS: Menu = Menu {
@@ -83,6 +89,10 @@ pub const VIEW_SETTINGS: Menu = Menu {
             next_menu_idx: UNITS_IDX,
         },
         MenuItem {
+            content: MenuItemContent::EditItem(Editable::BlockHorizon),
+            next_menu_idx: VIEW_SETTINGS_IDX,
+        },
+        MenuItem {
             content: MenuItemContent::EditItem(Editable::EnergyArrowMult),
             next_menu_idx: VIEW_SETTINGS_IDX,
         },
@@ -127,11 +137,15 @@ pub const ADVANCED_SETTINGS: Menu = Menu {
         },
         MenuItem {
             content: MenuItemContent::MenuItem(),
-            next_menu_idx: MORE_SETTINGS_IDX,
+            next_menu_idx: FLASH_CONTROL_IDX,
         },
         MenuItem {
-            content: MenuItemContent::EditItem(Editable::CenterFrequency),
-            next_menu_idx: ADVANCED_SETTINGS_IDX,
+            content: MenuItemContent::MenuItem(),
+            next_menu_idx: SOUND_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::MenuItem(),
+            next_menu_idx: MORE_SETTINGS_IDX,
         },
         MenuItem {
             content: MenuItemContent::EditItem(Editable::Return),
@@ -243,6 +257,10 @@ pub const SENSOR_BOX_COMMANDS: Menu = Menu {
             next_menu_idx: SENSOR_BOX_SETTINGS_IDX,
         },
         MenuItem {
+            content: MenuItemContent::MenuItem(),
+            next_menu_idx: TEST_FUNCTION_IDX,
+        },
+        MenuItem {
             content: MenuItemContent::EditItem(Editable::Return),
             next_menu_idx: SETTINGS_IDX,
         },
@@ -278,23 +296,7 @@ pub const SENSOR_BOX_SETTINGS: Menu = Menu {
             next_menu_idx: SENSOR_BOX_SETTINGS_IDX,
         },
         MenuItem {
-            content: MenuItemContent::EditItem(Editable::MagAutoCalib),
-            next_menu_idx: SENSOR_BOX_SETTINGS_IDX,
-        },
-        MenuItem {
             content: MenuItemContent::EditItem(Editable::VarioTc),
-            next_menu_idx: SENSOR_BOX_SETTINGS_IDX,
-        },
-        MenuItem {
-            content: MenuItemContent::EditItem(Editable::VarioIntTc),
-            next_menu_idx: SENSOR_BOX_SETTINGS_IDX,
-        },
-        MenuItem {
-            content: MenuItemContent::EditItem(Editable::WindTc),
-            next_menu_idx: SENSOR_BOX_SETTINGS_IDX,
-        },
-        MenuItem {
-            content: MenuItemContent::EditItem(Editable::MeanWindTc),
             next_menu_idx: SENSOR_BOX_SETTINGS_IDX,
         },
         MenuItem {
@@ -311,10 +313,6 @@ pub const SENSOR_BOX_SETTINGS: Menu = Menu {
         },
         MenuItem {
             content: MenuItemContent::EditItem(Editable::AntSlaveRight),
-            next_menu_idx: SENSOR_BOX_SETTINGS_IDX,
-        },
-        MenuItem {
-            content: MenuItemContent::EditItem(Editable::VarioPressTc),
             next_menu_idx: SENSOR_BOX_SETTINGS_IDX,
         },
         MenuItem {
@@ -530,12 +528,69 @@ pub const MORE_SETTINGS: Menu = Menu {
             next_menu_idx: MORE_SETTINGS_IDX,
         },
         MenuItem {
-            content: MenuItemContent::EditItem(Editable::FlashControl),
-            next_menu_idx: MORE_SETTINGS_IDX,
+            content: MenuItemContent::EditItem(Editable::Return),
+            next_menu_idx: ADVANCED_SETTINGS_IDX,
+        },
+    ],
+};
+
+pub const SOUND: Menu = Menu {
+    name: "Sound",
+    level: 3,
+    items: &[
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::CenterFrequency),
+            next_menu_idx: SOUND_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::Waveform),
+            next_menu_idx: SOUND_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::SoundSpreading),
+            next_menu_idx: SOUND_IDX,
         },
         MenuItem {
             content: MenuItemContent::EditItem(Editable::Return),
             next_menu_idx: ADVANCED_SETTINGS_IDX,
+        },
+    ],
+};
+
+pub const FLASH_CONTROL: Menu = Menu {
+    name: "Flash Control",
+    level: 3,
+    items: &[
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::FlashControl),
+            next_menu_idx: FLASH_CONTROL_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::FlashTest),
+            next_menu_idx: FLASH_CONTROL_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::Return),
+            next_menu_idx: ADVANCED_SETTINGS_IDX,
+        },
+    ],
+};
+
+pub const TEST_FUNCTION: Menu = Menu {
+    name: "Test Function",
+    level: 3,
+    items: &[
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::CmdTestFunctionNumber),
+            next_menu_idx: TEST_FUNCTION_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::CmdTestFunction),
+            next_menu_idx: TEST_FUNCTION_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::Return),
+            next_menu_idx: SENSOR_BOX_COMMANDS_IDX,
         },
     ],
 };

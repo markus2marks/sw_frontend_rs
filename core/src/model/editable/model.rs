@@ -1,6 +1,9 @@
 use super::{Content, EditableFuncs, EnumParams, F32Params, ListParams, Params};
 use crate::{
-    menu,
+    controller::{
+        Waveform, WAVEFORM_RECTANGULAR, WAVEFORM_SAWTOOTH, WAVEFORM_SINE_WAVE, WAVEFORM_TRIANGULAR,
+    },
+    get_snd_spreading_factor, menu,
     model::{
         config::{
             UnitHeight, UnitHorizontalSpeed, UnitVerticalSpeed, DEVICE_INFO, HORIZON, UNIT_FEET,
@@ -641,6 +644,41 @@ impl EditableFuncs for McCready {
     }
 }
 
+pub struct SoundSpreading;
+impl EditableFuncs for SoundSpreading {
+    fn name() -> &'static str {
+        "Spreading Factor"
+    }
+
+    fn content(cm: &mut CoreModel, _cc: &mut CoreController) -> Content {
+        let value = get_snd_spreading_factor(cm);
+        Content::F32(Some(value))
+    }
+
+    fn params(_cm: &CoreModel) -> Params {
+        Params::F32(F32Params {
+            min: 0.5,
+            max: 2.0,
+            small_inc: 0.1,
+            big_inc: 0.2,
+            dec_places: 1,
+            unit: "",
+        })
+    }
+
+    fn set_content(cm: &mut CoreModel, cc: &mut CoreController, content: Content) {
+        if let Content::F32(Some(value)) = content {
+            persist::persist_set(
+                cc,
+                cm,
+                Variant::F32(value),
+                PersistenceId::SoundSpreading,
+                Echo::None,
+            );
+        }
+    }
+}
+
 pub struct StfUpperLimit;
 impl EditableFuncs for StfUpperLimit {
     fn name() -> &'static str {
@@ -1194,6 +1232,48 @@ impl EditableFuncs for Volume {
                 Variant::I8(val as i8),
                 PersistenceId::Volume,
                 Echo::NmeaAndCan,
+            );
+        }
+    }
+}
+
+pub struct Waveform_;
+
+impl EditableFuncs for Waveform_ {
+    fn name() -> &'static str {
+        "Waveform"
+    }
+
+    fn content(cm: &mut CoreModel, _cc: &mut CoreController) -> Content {
+        match cm.calculated.sound_params.waveform {
+            Waveform::Rectangular => Content::Enum(TString::<16>::from_str(WAVEFORM_RECTANGULAR)),
+            Waveform::Sawtooth => Content::Enum(TString::<16>::from_str(WAVEFORM_SAWTOOTH)),
+            Waveform::SineWave => Content::Enum(TString::<16>::from_str(WAVEFORM_SINE_WAVE)),
+            Waveform::Triangular => Content::Enum(TString::<16>::from_str(WAVEFORM_TRIANGULAR)),
+        }
+    }
+
+    fn params(_cm: &CoreModel) -> Params {
+        Params::Enum(EnumParams {
+            variants: [
+                WAVEFORM_RECTANGULAR,
+                WAVEFORM_SAWTOOTH,
+                WAVEFORM_SINE_WAVE,
+                WAVEFORM_TRIANGULAR,
+                "",
+            ],
+        })
+    }
+
+    fn set_content(cm: &mut CoreModel, cc: &mut CoreController, content: Content) {
+        if let Content::Enum(val) = content {
+            let waveform = Waveform::from(val.as_str());
+            persist::persist_set(
+                cc,
+                cm,
+                Variant::U8(waveform as u8),
+                PersistenceId::Waveform,
+                Echo::None,
             );
         }
     }

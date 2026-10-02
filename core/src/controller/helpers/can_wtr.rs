@@ -20,13 +20,26 @@ impl CoreModel {
         )
     }
 
+    pub fn can_frame_hw_fw_version(&self) -> Frame {
+        Frame::generic(
+            CanFrame::empty_from_id(0x00)
+                .push_slice(&self.device_const.misc.hw_version.version)
+                .push_slice(&self.device_const.misc.sw_version.version),
+            GenericId::HwFwVersion as u16,
+        )
+    }
+
     pub fn can_frame_sound(&self) -> Frame {
         Frame::specific(
             CanFrame::empty_from_id(0x00)
-                .push_u16(self.calculated.frequency)
+                .push_u16(self.calculated.sound_params.frequency)
                 .push_u16(self.config.snd_duty_cycle)
-                .push_u8(self.calculated.gain as u8)
-                .push_u8(if self.calculated.continuous { 1 } else { 0 }),
+                .push_u8(self.calculated.sound_params.gain as u8)
+                .push_u8(if self.calculated.sound_params.continuous {
+                    1
+                } else {
+                    0
+                }),
             SpecialId::Sound as u16,
             OBJECT_ID,
         )
@@ -104,7 +117,7 @@ impl CoreModel {
         config_id: CanConfigId,
         get_set: RemoteConfig,
     ) -> Option<Frame> {
-        fn set_f32(data: &mut [u8; 6], content: Content, config_id: CanConfigId) -> bool {
+        fn set_content(data: &mut [u8; 6], content: Content, config_id: CanConfigId) -> bool {
             let mut r = false;
             if let Content::F32(Some(val)) = content {
                 use defmt::trace;
@@ -118,6 +131,12 @@ impl CoreModel {
                 LE::write_f32(&mut data[2..6], val);
                 r = true;
             }
+            if let Content::Date(Some(date)) = content {
+                if config_id == CanConfigId::BlockHorizon {
+                    LE::write_u32(&mut data[2..6], date.as_u32());
+                    r = true;
+                }
+            }
             r
         }
 
@@ -125,7 +144,7 @@ impl CoreModel {
         let available = match get_set {
             RemoteConfig::Set => {
                 data[0] = 1;
-                set_f32(&mut data, self.control.editor.content, config_id)
+                set_content(&mut data, self.control.editor.content, config_id)
             }
             RemoteConfig::Get => true,
         };

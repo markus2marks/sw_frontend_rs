@@ -15,6 +15,7 @@ pub struct ThermalData {
     last_tick: u32,
 
     best_pos: usize,
+    worst_pos: usize,
 }
 
 impl ThermalData {
@@ -41,24 +42,31 @@ impl ThermalData {
     }
 
     fn get_idx(alpha: f32) -> usize {
-        (alpha.rem_euclid(2.0 * PI) / DELTA_ALPHA) as usize
+        ((alpha.rem_euclid(2.0 * PI) / DELTA_ALPHA) as usize).clamp(0, 23)
     }
 
     pub fn prepare(&mut self) {
         self.best_pos = 0;
-        let mut value = self.climb_data[0];
+        self.worst_pos = 0;
+        let mut best_value = self.climb_data[0];
+        let mut worst_value = self.climb_data[0];
         for idx in 1..THERMAL_DATA_CNT {
-            if self.climb_data[idx] > value {
-                value = self.climb_data[idx];
+            if self.climb_data[idx] > best_value {
+                best_value = self.climb_data[idx];
                 self.best_pos = idx;
+            }
+            if self.climb_data[idx] < worst_value {
+                worst_value = self.climb_data[idx];
+                self.worst_pos = idx;
             }
         }
     }
 
-    pub fn get_dotted_item(&mut self, alpha: f32, cm: &CoreModel) -> (Colors, f32) {
-        let idx = Self::get_idx(alpha);
+    pub fn get_dotted_item(&mut self, idx: usize, cm: &CoreModel) -> (Colors, f32) {
         let color = if idx == self.best_pos {
             cm.palette().vario.therm_ass_best
+        } else if idx == self.worst_pos {
+            cm.palette().vario.therm_ass_worst
         } else if self.climb_data[idx] > 0.0 {
             cm.palette().vario.therm_ass_good
         } else {
@@ -68,10 +76,11 @@ impl ThermalData {
         (color, value)
     }
 
-    pub fn get_spider_item(&mut self, alpha: f32, cm: &CoreModel) -> (Colors, f32) {
-        let idx = Self::get_idx(alpha);
+    pub fn get_spider_item(&mut self, idx: usize, cm: &CoreModel) -> (Colors, f32) {
         let color = if idx == self.best_pos {
             cm.palette().vario.therm2_ass_best
+        } else if idx == self.worst_pos {
+            cm.palette().vario.therm2_ass_worst
         } else if self.climb_data[idx] > 0.0 {
             cm.palette().vario.therm2_ass_good
         } else {
@@ -89,6 +98,7 @@ impl Default for ThermalData {
             last_vario_mode: VarioMode::SpeedToFly,
             last_tick: 0,
             best_pos: 0,
+            worst_pos: 0,
         }
     }
 }

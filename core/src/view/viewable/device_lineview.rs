@@ -37,6 +37,9 @@ pub enum DeviceLineView {
 
     // lines of information (Sensor Box)
     SensorboxVersion = 50,
+    AhrsPitch,
+    AhrsRoll,
+    AhrsYaw,
     GnssAccuracityOk,
     MagneticDisturbanceOk,
     Ias,
@@ -112,10 +115,7 @@ impl DeviceLineView {
 
     fn line_info(&self, cm: &CoreModel) -> LineInfo {
         let mut lv = match self {
-
-
             // Vario Display values
-
             DeviceLineView::DisplayVersion => LineInfo {
                 name: "FW Version: ",
                 value: tformat!(
@@ -159,14 +159,34 @@ impl DeviceLineView {
             },
 
             // Sensorbox values
-
             DeviceLineView::SensorboxVersion => LineInfo {
                 name: "FW Version: ",
                 value: tformat!(30, "{}", cm.sensor.sw_version.as_string().as_str()).unwrap(),
             },
+            DeviceLineView::AhrsPitch => LineInfo {
+                name: "AHRS Pitch: ",
+                value: if cm.sensor.roll_pitch_available() {
+                    tformat!(30, "{:.0}°", cm.sensor.euler_pitch.to_degrees()).unwrap()
+                } else {
+                    tformat!(30, "-").unwrap()
+                },
+            },
+            DeviceLineView::AhrsRoll => LineInfo {
+                name: "AHRS Roll: ",
+                value: if cm.sensor.roll_pitch_available() {
+                    tformat!(30, "{:.0}°", cm.sensor.euler_roll.to_degrees()).unwrap()
+                } else {
+                    tformat!(30, "-").unwrap()
+                },
+            },
+            DeviceLineView::AhrsYaw => LineInfo {
+                name: "AHRS Yaw: ",
+                value: tformat!(30, "{:.0}°", cm.sensor.euler_yaw.to_degrees()).unwrap(),
+            },
             DeviceLineView::GnssAccuracityOk => LineInfo {
                 name: "GNSS Data: ",
-                value: tformat!(30, "{}", Self::ok(!cm.sensor.gnss_velocity_accuracy_bad())).unwrap(),
+                value: tformat!(30, "{}", Self::ok(!cm.sensor.gnss_velocity_accuracy_bad()))
+                    .unwrap(),
             },
             DeviceLineView::MagneticDisturbanceOk => LineInfo {
                 name: "Magn Data: ",
@@ -230,11 +250,12 @@ impl DeviceLineView {
             },
 
             // These are empty or header lines, so this never can be addressed
-
-            DeviceLineView::Empty | DeviceLineView::SensorBox | DeviceLineView::VarioDisplay => LineInfo {
-                name: "Error",
-                value: tformat!(30, "Error").unwrap(),
-            },
+            DeviceLineView::Empty | DeviceLineView::SensorBox | DeviceLineView::VarioDisplay => {
+                LineInfo {
+                    name: "Error",
+                    value: tformat!(30, "Error").unwrap(),
+                }
+            }
         };
         if cm.control.system_state == SystemState::NoCom && (*self as u8) >= 50 {
             lv.value = tformat!(30, "-").unwrap();

@@ -1,8 +1,10 @@
-use super::{CmdParams, Content, EditableFuncs, F32Params, Params};
+use super::{CmdParams, Content, EditableFuncs, F32Params, Params, COMMAND_SENT};
 use crate::{
     controller::{persist::send_can_config_frame, CanConfigId, RemoteConfig},
+    model::SystemState,
+    persist::send_can_test_func,
     utils::TString,
-    CoreController, CoreModel,
+    CoreController, CoreModel, Date,
 };
 
 pub struct SensTiltRoll;
@@ -150,33 +152,6 @@ impl EditableFuncs for QnhDelta {
     }
 }
 
-pub struct MagAutoCalib;
-impl EditableFuncs for MagAutoCalib {
-    fn name() -> &'static str {
-        "Mag Auto Calib"
-    }
-
-    fn content(cm: &mut CoreModel, cc: &mut CoreController) -> Content {
-        send_can_config_frame(cm, cc, CanConfigId::MagAutoCalib, RemoteConfig::Get);
-        Content::F32(None)
-    }
-
-    fn params(_cm: &CoreModel) -> Params {
-        Params::F32(F32Params {
-            min: 0.0,
-            max: 2.0,
-            small_inc: 1.0,
-            big_inc: 1.0,
-            dec_places: 0,
-            unit: "",
-        })
-    }
-
-    fn set_content(cm: &mut CoreModel, cc: &mut CoreController, _content: Content) {
-        send_can_config_frame(cm, cc, crate::CanConfigId::MagAutoCalib, RemoteConfig::Set);
-    }
-}
-
 pub struct VarioTc;
 const TC_PARAMS: Params = Params::F32(F32Params {
     min: 1.0,
@@ -203,66 +178,6 @@ impl EditableFuncs for VarioTc {
 
     fn set_content(cm: &mut CoreModel, cc: &mut CoreController, _content: Content) {
         send_can_config_frame(cm, cc, crate::CanConfigId::VarioTc, RemoteConfig::Set);
-    }
-}
-
-pub struct VarioIntTc;
-impl EditableFuncs for VarioIntTc {
-    fn name() -> &'static str {
-        "Vario Avg TC"
-    }
-
-    fn content(cm: &mut CoreModel, cc: &mut CoreController) -> Content {
-        send_can_config_frame(cm, cc, CanConfigId::VarioIntTc, RemoteConfig::Get);
-        Content::F32(None)
-    }
-
-    fn params(_cm: &CoreModel) -> Params {
-        TC_PARAMS
-    }
-
-    fn set_content(cm: &mut CoreModel, cc: &mut CoreController, _content: Content) {
-        send_can_config_frame(cm, cc, crate::CanConfigId::VarioIntTc, RemoteConfig::Set);
-    }
-}
-
-pub struct WindTc;
-impl EditableFuncs for WindTc {
-    fn name() -> &'static str {
-        "Wind TC"
-    }
-
-    fn content(cm: &mut CoreModel, cc: &mut CoreController) -> Content {
-        send_can_config_frame(cm, cc, CanConfigId::WindTc, RemoteConfig::Get);
-        Content::F32(None)
-    }
-
-    fn params(_cm: &CoreModel) -> Params {
-        TC_PARAMS
-    }
-
-    fn set_content(cm: &mut CoreModel, cc: &mut CoreController, _content: Content) {
-        send_can_config_frame(cm, cc, crate::CanConfigId::WindTc, RemoteConfig::Set);
-    }
-}
-
-pub struct MeanWindTc;
-impl EditableFuncs for MeanWindTc {
-    fn name() -> &'static str {
-        "Wind Avg TC"
-    }
-
-    fn content(cm: &mut CoreModel, cc: &mut CoreController) -> Content {
-        send_can_config_frame(cm, cc, CanConfigId::MeanWindTc, RemoteConfig::Get);
-        Content::F32(None)
-    }
-
-    fn params(_cm: &CoreModel) -> Params {
-        TC_PARAMS
-    }
-
-    fn set_content(cm: &mut CoreModel, cc: &mut CoreController, _content: Content) {
-        send_can_config_frame(cm, cc, crate::CanConfigId::MeanWindTc, RemoteConfig::Set);
     }
 }
 
@@ -362,28 +277,50 @@ impl EditableFuncs for AntSlaveRight {
     }
 }
 
-pub struct VarioPressTc;
-impl EditableFuncs for VarioPressTc {
+pub struct BlockHorizon;
+impl EditableFuncs for BlockHorizon {
     fn name() -> &'static str {
-        "Vario Press TC"
+        "Block Horizon"
     }
 
     fn content(cm: &mut CoreModel, cc: &mut CoreController) -> Content {
-        send_can_config_frame(cm, cc, CanConfigId::VarioPressTc, RemoteConfig::Get);
-        Content::F32(None)
+        send_can_config_frame(cm, cc, CanConfigId::BlockHorizon, RemoteConfig::Get);
+        Content::Date(None)
     }
 
-    fn params(_cm: &CoreModel) -> Params {
-        TC_PARAMS
+    fn params(cm: &CoreModel) -> Params {
+        if cm.control.system_state == SystemState::CanAndGpsOk {
+            let min = *cm.sensor.gps_date_time.date();
+            let mut max = min;
+            max.add_days(21);
+            Params::Date(super::DateParams {
+                min,
+                max,
+                small_inc_plus: 1,
+                small_inc_minus: 0,
+                big_inc_plus: 10,
+                big_inc_minus: 0,
+                is_active: true,
+            })
+        } else {
+            Params::Date(super::DateParams {
+                min: Date::new(2000, 1, 1),
+                max: Date::new(2000, 1, 1),
+                small_inc_plus: 0,
+                small_inc_minus: 0,
+                big_inc_plus: 0,
+                big_inc_minus: 0,
+                is_active: false,
+            })
+        }
     }
 
     fn set_content(cm: &mut CoreModel, cc: &mut CoreController, _content: Content) {
-        send_can_config_frame(cm, cc, crate::CanConfigId::VarioPressTc, RemoteConfig::Set);
+        send_can_config_frame(cm, cc, crate::CanConfigId::BlockHorizon, RemoteConfig::Set);
     }
 }
 
 pub struct CmdMeas1;
-const COMMAND_SENT: &str = "Command sent";
 
 impl EditableFuncs for CmdMeas1 {
     fn name() -> &'static str {
@@ -517,5 +454,56 @@ impl EditableFuncs for CmdResetSensorbox {
 
     fn set_content(cm: &mut CoreModel, cc: &mut CoreController, _content: Content) {
         send_can_config_frame(cm, cc, crate::CanConfigId::CmdReset, RemoteConfig::Get);
+    }
+}
+
+pub struct CmdTestFunction;
+
+impl EditableFuncs for CmdTestFunction {
+    fn name() -> &'static str {
+        "Test Function"
+    }
+
+    fn content(_cm: &mut CoreModel, _cc: &mut CoreController) -> Content {
+        Content::Command(TString::<16>::from_str(COMMAND_SENT))
+    }
+
+    fn params(_cm: &CoreModel) -> Params {
+        Params::Cmd(CmdParams {
+            content: TString::<16>::from_str(COMMAND_SENT),
+        })
+    }
+
+    fn set_content(cm: &mut CoreModel, cc: &mut CoreController, _content: Content) {
+        send_can_test_func(cc, cm.sensor.test_no);
+    }
+}
+
+pub struct CmdTestFunctionNumber;
+
+impl EditableFuncs for CmdTestFunctionNumber {
+    fn name() -> &'static str {
+        "Test Parameter"
+    }
+
+    fn content(cm: &mut CoreModel, _cc: &mut CoreController) -> Content {
+        Content::F32(Some(cm.sensor.test_no as f32))
+    }
+
+    fn params(_cm: &CoreModel) -> Params {
+        Params::F32(F32Params {
+            min: 0.0,
+            max: 9.0,
+            small_inc: 1.0,
+            big_inc: 1.0,
+            dec_places: 0,
+            unit: "",
+        })
+    }
+
+    fn set_content(cm: &mut CoreModel, _cc: &mut CoreController, content: Content) {
+        if let Content::F32(Some(val)) = content {
+            cm.sensor.test_no = val as u8;
+        }
     }
 }

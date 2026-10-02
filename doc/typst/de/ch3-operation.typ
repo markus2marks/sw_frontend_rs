@@ -16,10 +16,20 @@ beiden Drehknöpfen sind folgende Funktionen zugewiesen:
 - Kurzer Druck auf den Drehknopf: Flight Menu
 - Längeres Drücken des Drehknopfs: Settings Menu
 
-Das Gerät stellt drei Basisanzeigen zur Verfügung: Vario, Horizont und Geräteinformationen.
-Zwischen den Anzeigen kann gewechselt werden, indem nach einem kurzen Tastendruck, im Menu der Punkt
-Display angewählt wird. Die eingestellte Anzeige beibt dauerhaft erhalten. In den folgenden
-Abschnitten werden die verschiedenen Anzeigemodi beschrieben. ]
+In den Menüs kann der gewünschte Punkt mit Hilfe der Drehgeber ausgewählt werden. Die Aktivierung erfolgt durch 
+einen kurzen Tastendruck. In den Menüs gibt es entweder Submenüs oder Konfigurationsparameter zur Auswahl. 
+Submenüs werden auf die gleiche Weise durchsucht. Nach der Aktivierung eines Konfigurationsparameters 
+kann dieser geändert werden. Die Änderungen erfolgen unmittelbar. Durch einen kurzen Tastendruck kehrt man in 
+das aufrufende Menü zurück.
+
+Egal, ob Sie sich in einem Menü, einem Submenü oder im Editor befinden: Sie können immer mittels langem 
+Tastendruck direkt in die Basiszeige zurückkehren.
+
+Das Gerät stellt drei Basisanzeigen zur Verfügung: Vario, Horizont und Geräteinformationen. 
+Zwischen den Anzeigen kann gewechselt werden, indem nach einem kurzen Tastendruck, im Flight 
+Menu der Punkt Display genutzt wird. Alternativ dazu kann bei gedrückten Drehknopf die gewünschte 
+Basisanzeige durch Drehen ausgewählt werden. Die eingestellte Anzeige beibt dauerhaft erhalten. 
+In den folgenden Abschnitten werden die verschiedenen Anzeigemodi beschrieben. ]
 
 == Vario Display
 <vario-display>
@@ -134,6 +144,7 @@ nützlich, wei das LARUS System das Steigen verzögerungsfrei anzeigt.
 Bedeutung der Farben der Kreispunkte:
 
 - Gelb: Maximum des Steigens
+- Schwarz: Minimum des Steigens
 - Rot: Das Steigen liegt über dem Durchschnitt
 - Blau: Das Steigen liegt unter dem Durchschnitt 
 
@@ -148,6 +159,7 @@ optimal zentriert, wenn blaue und rote Punkte etwa gleich häufig vorkommen.]
 #tr[Bedeutung der Farben der Kreissegmente:
 
 - Gelb: Maximum des Steigens
+- Schwarz: Minimum des Steigens
 - Rot: Das Steigen liegt über dem Durchschnitt
 - Blau: Das Steigen liegt unter dem Durchschnitt
 

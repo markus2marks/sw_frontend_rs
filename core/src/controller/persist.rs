@@ -29,14 +29,15 @@ use crate::{
     },
     flight_physics::polar_store,
     model::{GpsState, UnitHeight, UnitHorizontalSpeed, UnitVerticalSpeed},
+    set_snd_spreading_factor,
     system_of_units::Speed,
     utils::Variant,
     view::viewable::{
         centerview::CenterView,
         vario_infoview::{Info3View, LineView},
     },
-    CoreController, CoreModel, DateTime, FloatToSpeed, IdleEvent, Mass, PersistenceItem, Pressure,
-    Rotation, VarioMode,
+    CanFrame, CoreController, CoreError, CoreModel, DateTime, FloatToSpeed, Frame, GenericId,
+    IdleEvent, Mass, PersistenceItem, Pressure, Rotation, VarioMode, Waveform,
 };
 
 /// It is not permitted to change the sequence or assignment, as the number references the memory
@@ -100,7 +101,9 @@ pub enum PersistenceId {
     UnitHeight = 53,
     ClubMode = 54,
     Date = 55,
-    LastItem = 56, // Items smaller than this are stored in eeprom
+    Waveform = 56,
+    SoundSpreading = 57,
+    LastItem = 58, // Items smaller than this are stored in eeprom
 
     // Special function Ids
     VarioMode = 65532,
@@ -169,6 +172,8 @@ const DELETE_CONFIG_LIST: &[PersistenceId] = &[
     PersistenceId::Info2Stf,
     PersistenceId::Info3Vario,
     PersistenceId::Info3Stf,
+    PersistenceId::Waveform,
+    PersistenceId::SoundSpreading,
 ];
 
 /// The following data is deleted when a new glider is selected
@@ -207,14 +212,22 @@ pub enum Echo {
 /// Store item content into data model
 ///
 /// This method is also called directly from the idle-loop during start-up
-pub fn restore_item(cc: &mut CoreController, cm: &mut CoreModel, item: PersistenceItem) {
+pub fn restore_item(
+    cc: &mut CoreController,
+    cm: &mut CoreModel,
+    item: PersistenceItem,
+) -> Result<(), CoreError> {
     match item.id {
         PersistenceId::Volume => cm.config.volume = item.to_i8(),
-        PersistenceId::McCready => cm.config.mc_cready = Speed::from_m_s(item.to_f32()),
-        PersistenceId::WaterBallast => cm.glider_data.water_ballast = Mass::from_kg(item.to_f32()),
-        PersistenceId::PilotWeight => cm.glider_data.pilot_weight = Mass::from_kg(item.to_f32()),
+        PersistenceId::McCready => cm.config.mc_cready = Speed::from_m_s(item.to_f32()?),
+        PersistenceId::WaterBallast => cm.glider_data.water_ballast = Mass::from_kg(item.to_f32()?),
+        PersistenceId::PilotWeight => cm.glider_data.pilot_weight = Mass::from_kg(item.to_f32()?),
         PersistenceId::Glider => {
-            let raw_idx = item.to_i32();
+            let raw_idx = if item.to_i32() as usize >= polar_store::POLARS.len() {
+                0
+            } else {
+                item.to_i32()
+            };
             cm.config.glider_idx = raw_idx;
             cm.glider_data.basic_glider_data = polar_store::POLARS[raw_idx as usize];
         }
@@ -229,62 +242,64 @@ pub fn restore_item(cc: &mut CoreController, cm: &mut CoreModel, item: Persisten
             }
         }
         PersistenceId::Qnh => {
-            let qnh = Pressure::from_hpa(item.to_f32());
+            let qnh = Pressure::from_hpa(item.to_f32()?);
             cm.sensor.pressure_altitude.set_qnh(qnh)
         }
-        PersistenceId::Bugs => cm.glider_data.set_bugs(item.to_f32()),
+        PersistenceId::Bugs => cm.glider_data.set_bugs(item.to_f32()?),
         PersistenceId::Display => cm.config.display_active = item.to_u8().into(),
         PersistenceId::TcClimbRate => {
-            let tc = item.to_f32();
+            let tc = item.to_f32()?;
             cm.config.av2_climb_rate_tc = tc;
             cc.av2_climb_rate.set_time_const(tc);
         }
         PersistenceId::TcSpeedToFly => {
-            let tc = item.to_f32();
+            let tc = item.to_f32()?;
             cm.config.av_speed_to_fly_tc = tc;
             cc.av_speed_to_fly.set_time_const(tc);
         }
         PersistenceId::Info1Vario => cm.config.info1_vario = LineView::from(item.to_u8()),
         PersistenceId::Info2Vario => cm.config.info2_vario = LineView::from(item.to_u8()),
         PersistenceId::Rotation => cm.control.rotation = Rotation::from(item.to_u8()),
-        PersistenceId::CenterFrequency => cm.config.snd_center_freq = item.to_f32(),
+        PersistenceId::CenterFrequency => cm.config.snd_center_freq = item.to_f32()?,
         PersistenceId::CenterViewCircling => {
             cm.config.center_circling = CenterView::from(item.to_u8())
         }
         PersistenceId::CenterViewStraight => {
             cm.config.center_straight = CenterView::from(item.to_u8())
         }
-        PersistenceId::EmptyMass => cm.glider_data.basic_glider_data.empty_mass = item.to_f32(),
-        PersistenceId::MaxBallast => cm.glider_data.basic_glider_data.max_ballast = item.to_f32(),
+        PersistenceId::EmptyMass => cm.glider_data.basic_glider_data.empty_mass = item.to_f32()?,
+        PersistenceId::MaxBallast => {
+            cm.glider_data.basic_glider_data.max_ballast = item.to_f32()?
+        }
         PersistenceId::ReferenceWeight => {
-            cm.glider_data.basic_glider_data.reference_weight = item.to_f32()
+            cm.glider_data.basic_glider_data.reference_weight = item.to_f32()?
         }
         PersistenceId::PolarValueV1 => {
-            cm.glider_data.basic_glider_data.polar_values[0][0] = item.to_f32()
+            cm.glider_data.basic_glider_data.polar_values[0][0] = item.to_f32()?
         }
         PersistenceId::PolarValueV2 => {
-            cm.glider_data.basic_glider_data.polar_values[1][0] = item.to_f32()
+            cm.glider_data.basic_glider_data.polar_values[1][0] = item.to_f32()?
         }
         PersistenceId::PolarValueV3 => {
-            cm.glider_data.basic_glider_data.polar_values[2][0] = item.to_f32()
+            cm.glider_data.basic_glider_data.polar_values[2][0] = item.to_f32()?
         }
         PersistenceId::PolarValueSi1 => {
-            cm.glider_data.basic_glider_data.polar_values[0][1] = item.to_f32()
+            cm.glider_data.basic_glider_data.polar_values[0][1] = item.to_f32()?
         }
         PersistenceId::PolarValueSi2 => {
-            cm.glider_data.basic_glider_data.polar_values[1][1] = item.to_f32()
+            cm.glider_data.basic_glider_data.polar_values[1][1] = item.to_f32()?
         }
         PersistenceId::PolarValueSi3 => {
-            cm.glider_data.basic_glider_data.polar_values[2][1] = item.to_f32()
+            cm.glider_data.basic_glider_data.polar_values[2][1] = item.to_f32()?
         }
         PersistenceId::GliderSymbol => cm.config.glider_symbol = item.to_bool(),
-        PersistenceId::BatteryGood => cm.config.battery_good = item.to_f32(),
-        PersistenceId::BatteryLow => cm.config.battery_low = item.to_f32(),
+        PersistenceId::BatteryGood => cm.config.battery_good = item.to_f32()?,
+        PersistenceId::BatteryLow => cm.config.battery_low = item.to_f32()?,
         PersistenceId::DrainPinConfig => cc
             .drain_control
             .set_pin_function(InPinFunction::from(item.to_u8()), cm),
-        PersistenceId::FlowEmpty => cc.drain_control.flow_rate_offset = item.to_f32(),
-        PersistenceId::FlowSlope => cc.drain_control.flow_rate_slope = item.to_f32(),
+        PersistenceId::FlowEmpty => cc.drain_control.flow_rate_offset = item.to_f32()?,
+        PersistenceId::FlowSlope => cc.drain_control.flow_rate_slope = item.to_f32()?,
         PersistenceId::FlashControl => cc
             .flash_control
             .set_pin_function(OutPinFunction::from(item.to_u8())),
@@ -301,16 +316,16 @@ pub fn restore_item(cc: &mut CoreController, cm: &mut CoreModel, item: Persisten
             .gear_alarm_control
             .set_gear_pin_mode(GearPins::from(item.to_u8())),
         PersistenceId::AlarmVolume => cm.control.alarm_volume = item.to_i8(),
-        PersistenceId::StfUpperLimit => cm.config.stf_upper_limit = item.to_f32().m_s(),
-        PersistenceId::StfLowerLimit => cm.config.stf_lower_limit = item.to_f32().m_s(),
+        PersistenceId::StfUpperLimit => cm.config.stf_upper_limit = item.to_f32()?.m_s(),
+        PersistenceId::StfLowerLimit => cm.config.stf_lower_limit = item.to_f32()?.m_s(),
         PersistenceId::AvgClimbeRateSrc => {
             cm.control.avg_climb_rate_src = DataSource::from(item.to_u8())
         }
         PersistenceId::StfClimbrateAlt => (),
         PersistenceId::TcCircleHysteresis => cm.config.circle_hysteresis_tc = item.to_i8(),
-        PersistenceId::EnergyArrowMult => cm.control.energy_arrow_mult = item.to_f32(),
-        PersistenceId::VarioUpperLimit => cm.config.vario_upper_limit = item.to_f32().m_s(),
-        PersistenceId::VarioLowerLimit => cm.config.vario_lower_limit = item.to_f32().m_s(),
+        PersistenceId::EnergyArrowMult => cm.control.energy_arrow_mult = item.to_f32()?,
+        PersistenceId::VarioUpperLimit => cm.config.vario_upper_limit = item.to_f32()?.m_s(),
+        PersistenceId::VarioLowerLimit => cm.config.vario_lower_limit = item.to_f32()?.m_s(),
         PersistenceId::Info1Stf => cm.config.info1_stf = LineView::from(item.to_u8()),
         PersistenceId::Info2Stf => cm.config.info2_stf = LineView::from(item.to_u8()),
         PersistenceId::Info3Vario => cm.config.info3_vario = Info3View::from(item.to_u8()),
@@ -327,6 +342,10 @@ pub fn restore_item(cc: &mut CoreController, cm: &mut CoreModel, item: Persisten
             let data = item.to_4u8();
             cm.sensor.gps_date_time.mut_date().from_array_4u8(data);
         }
+        PersistenceId::Waveform => {
+            cm.calculated.sound_params.waveform = Waveform::from(item.to_u8())
+        }
+        PersistenceId::SoundSpreading => set_snd_spreading_factor(cm, item.to_f32()?),
 
         // Special function Ids
         PersistenceId::UserProfile => cm.config.user_profile = item.to_u8(),
@@ -337,6 +356,7 @@ pub fn restore_item(cc: &mut CoreController, cm: &mut CoreModel, item: Persisten
         PersistenceId::DoNotStore => (),
         PersistenceId::LastItem => (),
     }
+    Ok(())
 }
 
 pub fn persist_set(
@@ -347,7 +367,8 @@ pub fn persist_set(
     echo: Echo,
 ) {
     let item = PersistenceItem::from_variant(id, variant);
-    restore_item(cc, cm, item);
+    // silently ignore values like NAN, is_subnormal etc
+    let _ = restore_item(cc, cm, item);
 
     if id == PersistenceId::Glider {
         // When we choose a new glider polar, these settings are no longer usefull
@@ -402,6 +423,19 @@ pub fn send_can_config_frame(
                 .after(crate::Timer::PersistSetting, PERSISTENCE_TIMEOUT.millis());
         }
     }
+}
+
+pub fn send_can_test_func(cc: &mut CoreController, no: u8) {
+    // send test function with parameter no to sensorbox
+    let data = [0u8; 5];
+    let frame = Frame::generic(
+        CanFrame::empty_from_id(0)
+            .push_u16(CanConfigId::CmdTestFunction as u16)
+            .push_u8(no)
+            .push_slice(&data),
+        GenericId::SetSysSetting as u16,
+    );
+    let _ = cc.p_tx_frames.enqueue(frame);
 }
 
 pub fn delete_config(cm: &mut CoreModel, cc: &mut CoreController) {

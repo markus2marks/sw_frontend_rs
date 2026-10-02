@@ -2,7 +2,7 @@ mod helpers;
 pub use helpers::{
     can_frame::*,
     can_ids::{audio_legacy, frontend_legacy, sensor_legacy, GenericId, SpecialId},
-    CanActive, CanConfigId, IntToDuration, NmeaBuffer, RemoteConfig, Scheduler, Tim,
+    CanActive, CanConfigId, CircleStats, IntToDuration, NmeaBuffer, RemoteConfig, Scheduler, Tim,
 };
 pub(crate) use helpers::{
     DrainControl, FlashControl, GearAlarmControl, GearPins, InPinFunction, InTogglePinFunction,
@@ -23,7 +23,10 @@ mod fw_update;
 use fw_update::SwUpdateController;
 
 mod sound;
-pub(crate) use sound::SoundControl;
+pub use sound::{
+    get_snd_spreading_factor, set_snd_spreading_factor, SoundControl, SoundParams, Waveform,
+    SND_EXP_MUL, WAVEFORM_RECTANGULAR, WAVEFORM_SAWTOOTH, WAVEFORM_SINE_WAVE, WAVEFORM_TRIANGULAR,
+};
 
 mod tick_1s;
 use tick_1s::*;
@@ -35,7 +38,7 @@ use crate::{
     basic_config::{CONTROLLER_TICK_RATE, MAX_TX_FRAMES},
     common::PTxFrames,
     flight_physics::Polar,
-    model::{DataSource, DisplayActive, EditMode, VarioModeControl},
+    model::{CirclingDirection, DataSource, DisplayActive, EditMode, VarioModeControl},
     system_of_units::{FloatToSpeed, Speed},
     utils::{KeyEvent, PIdleEvents, Pt1},
     CPersistenceItems, CoreModel, DeviceEvent, Editable, Event, IdleEvent, InputPinState,
@@ -83,6 +86,7 @@ pub struct CoreController {
     last_vario_mode: VarioMode,
     av2_climb_rate: Pt1<Speed>,
     av_speed_to_fly: Pt1<Speed>,
+    circle_stats: CircleStats,
     pub nmea_buffer: NmeaBuffer,
     pub scheduler: Scheduler<5>,
     pub pers_vals: FnvIndexMap<PersistenceId, PersistenceItem, MAX_PERS_IDS>,
@@ -131,6 +135,7 @@ impl CoreController {
             sw_update: SwUpdateController::new(),
             av2_climb_rate,
             av_speed_to_fly,
+            circle_stats: CircleStats::default(),
             nmea_buffer: NmeaBuffer::new(),
             scheduler,
             nmea_vals: FnvIndexSet::new(),
@@ -159,7 +164,10 @@ impl CoreController {
         while self.ms != time_ms {
             self.ms = self.ms.wrapping_add(1);
             match self.ms % 100 {
-                0 => self.scheduler.tick_100ms().unwrap(), // call scheduler every 100ms
+                0 => {
+                    // call scheduler every 100ms
+                    let _ = self.scheduler.tick_100ms();
+                }
                 1 => {
                     self.tick_100ms(cm); // call 100ms tick routine
                     recalc = true;
@@ -174,7 +182,8 @@ impl CoreController {
         }
         // Check queue everey time, tick_1ms is called
         if let Some(item) = self.queue_from_idle_task.dequeue() {
-            persist::restore_item(self, cm, item);
+            // silently ignores values like NAN, is_subnormal etc
+            let _ = persist::restore_item(self, cm, item);
         }
         recalc
     }
@@ -189,6 +198,10 @@ impl CoreController {
 
     fn tick_100ms(&mut self, core_model: &mut CoreModel) {
         core_model.control.alive_ticks = core_model.control.alive_ticks.wrapping_add(1);
+        core_model.control.circling_direction = CirclingDirection::from_turn_rate(
+            core_model.sensor.turn_rate.to_rad_s(),
+            core_model.control.circling_direction,
+        );
 
         if core_model.control.vario_mode == VarioMode::Vario {
             self.av2_climb_rate.tick(core_model.sensor.climb_rate);

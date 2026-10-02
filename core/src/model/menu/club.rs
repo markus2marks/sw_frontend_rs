@@ -12,6 +12,7 @@ pub const UNITS_IDX: usize = 7;
 pub const USAGE_MODE_AND_PROFILE_IDX: usize = 8;
 pub const VIEW_STRAIGHT_IDX: usize = 9;
 pub const VIEW_CIRCLING_IDX: usize = 10;
+pub const SOUND_IDX: usize = 11;
 
 pub const MENU_LIST: &[Menu] = &[
     ROOT,
@@ -25,6 +26,7 @@ pub const MENU_LIST: &[Menu] = &[
     USAGE_MODE_AND_PROFILE,
     VIEW_STRAIGHT,
     VIEW_CIRCLING,
+    SOUND,
 ];
 
 pub const SETTINGS: Menu = Menu {
@@ -63,6 +65,10 @@ pub const VIEW_SETTINGS: Menu = Menu {
             next_menu_idx: UNITS_IDX,
         },
         MenuItem {
+            content: MenuItemContent::EditItem(Editable::BlockHorizon),
+            next_menu_idx: VIEW_SETTINGS_IDX,
+        },
+        MenuItem {
             content: MenuItemContent::EditItem(Editable::EnergyArrowMult),
             next_menu_idx: VIEW_SETTINGS_IDX,
         },
@@ -94,7 +100,11 @@ pub const ADVANCED_SETTINGS: Menu = Menu {
             next_menu_idx: SPEED_TO_FLY_IDX,
         },
         MenuItem {
-            content: MenuItemContent::EditItem(Editable::CenterFrequency),
+            content: MenuItemContent::MenuItem(),
+            next_menu_idx: SOUND_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::FlashTest),
             next_menu_idx: ADVANCED_SETTINGS_IDX,
         },
         MenuItem {
@@ -254,6 +264,29 @@ pub const VIEW_CIRCLING: Menu = Menu {
         MenuItem {
             content: MenuItemContent::EditItem(Editable::Return),
             next_menu_idx: VIEW_SETTINGS_IDX,
+        },
+    ],
+};
+
+pub const SOUND: Menu = Menu {
+    name: "Sound",
+    level: 3,
+    items: &[
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::CenterFrequency),
+            next_menu_idx: SOUND_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::Waveform),
+            next_menu_idx: SOUND_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::SoundSpreading),
+            next_menu_idx: SOUND_IDX,
+        },
+        MenuItem {
+            content: MenuItemContent::EditItem(Editable::Return),
+            next_menu_idx: ADVANCED_SETTINGS_IDX,
         },
     ],
 };

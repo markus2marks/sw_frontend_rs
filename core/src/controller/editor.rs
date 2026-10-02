@@ -1,11 +1,58 @@
 use crate::{
     basic_config::SECTION_EDITOR_TIMEOUT,
-    controller::{helpers::IntToDuration, KeyEvent, Timer},
+    controller::{close_menu_display, helpers::IntToDuration, KeyEvent, Timer},
     model::{editable::*, DisplayActive, EditMode, OverlayActive},
+    persist,
     utils::TString,
-    CoreController, CoreModel, Editable,
+    utils::Variant,
+    CoreController, CoreModel, Echo, Editable, PersistenceId,
 };
 use num::clamp;
+
+fn edit_cmd_content(
+    _cm: &mut CoreModel,
+    _cc: &mut CoreController,
+    key_event: &mut KeyEvent,
+    _target: Editable,
+    _params: &CmdParams,
+) {
+    // There is nothing to do here, Cmd is sent when activating
+    *key_event = KeyEvent::NoEvent
+}
+
+fn edit_date_content(
+    cm: &mut CoreModel,
+    cc: &mut CoreController,
+    key_event: &mut KeyEvent,
+    target: Editable,
+    params: &DateParams,
+) {
+    if params.is_active {
+        if let Content::Date(Some(mut date)) = cm.control.editor.content {
+            if date >= params.min && date <= params.max {
+                match key_event {
+                    KeyEvent::Rotary2Left => date.add_days(params.small_inc_minus as i32),
+                    KeyEvent::Rotary2Right => date.add_days(params.small_inc_plus as i32),
+                    KeyEvent::Rotary1Left => date.add_days(params.big_inc_minus as i32),
+                    KeyEvent::Rotary1Right => date.add_days(params.big_inc_plus as i32),
+                    KeyEvent::BtnEnc => (),
+                    _ => return,
+                }
+            } else {
+                if *key_event == KeyEvent::BtnEnc {
+                    return;
+                } else {
+                    date = params.min;
+                }
+            }
+            let date = clamp(date, params.min, params.max);
+            let content = Content::Date(Some(date));
+            cm.control.editor.content = content;
+            target.set_content(cm, cc, content);
+        }
+    }
+    *key_event = KeyEvent::NoEvent;
+}
 
 fn edit_enum_content(
     cm: &mut CoreModel,
@@ -91,17 +138,6 @@ fn edit_list_content(
     }
 }
 
-fn edit_cmd_content(
-    _cm: &mut CoreModel,
-    _cc: &mut CoreController,
-    key_event: &mut KeyEvent,
-    _target: Editable,
-    _params: &CmdParams,
-) {
-    // There is nothing to do here, Cmd is sent when activating
-    *key_event = KeyEvent::NoEvent
-}
-
 pub fn key_action(key_event: &mut KeyEvent, cm: &mut CoreModel, cc: &mut CoreController) {
     if cm.control.editor.mode != EditMode::Off {
         match key_event {
@@ -109,7 +145,11 @@ pub fn key_action(key_event: &mut KeyEvent, cm: &mut CoreModel, cc: &mut CoreCon
                 cm.control.editor.enter_pushed = true;
                 let _ = cc.scheduler.stop(Timer::CloseEditFrame, true); // finish edit session
             }
-            KeyEvent::BtnEncS3 => *key_event = KeyEvent::NoEvent,
+            KeyEvent::BtnEncS3 => {
+                let _ = cc.scheduler.stop(Timer::CloseEditFrame, true); // finish edit session
+                close_menu_display(cm, cc); // close also menu and return to standard display
+                *key_event = KeyEvent::NoEvent;
+            }
             _ => cc
                 .scheduler
                 .after(crate::Timer::CloseEditFrame, SECTION_EDITOR_TIMEOUT.secs()),
@@ -135,6 +175,7 @@ pub fn key_action(key_event: &mut KeyEvent, cm: &mut CoreModel, cc: &mut CoreCon
         }
 
         match cm.control.editor.params {
+            Params::Date(params) => edit_date_content(cm, cc, key_event, target, &params),
             Params::Enum(params) => edit_enum_content(cm, cc, key_event, target, &params),
             Params::String(_) => (),
             Params::List(params) => edit_list_content(cm, cc, key_event, target, &params),
@@ -155,6 +196,34 @@ pub fn key_action(key_event: &mut KeyEvent, cm: &mut CoreModel, cc: &mut CoreCon
                     activate_editable(Editable::Volume, cm, cc);
                     *key_event = KeyEvent::NoEvent;
                 }
+            }
+            KeyEvent::BtnEncPlusRotary2Left => {
+                let display_active = match cm.config.display_active {
+                    DisplayActive::Horizon => DisplayActive::Vario,
+                    DisplayActive::DeviceInfo => DisplayActive::Horizon,
+                    _ => DisplayActive::DeviceInfo,
+                };
+                persist::persist_set(
+                    cc,
+                    cm,
+                    Variant::U32(display_active as u32),
+                    PersistenceId::Display,
+                    Echo::None,
+                );
+            }
+            KeyEvent::BtnEncPlusRotary2Right => {
+                let display_active = match cm.config.display_active {
+                    DisplayActive::Horizon => DisplayActive::DeviceInfo,
+                    DisplayActive::DeviceInfo => DisplayActive::Vario,
+                    _ => DisplayActive::Horizon,
+                };
+                persist::persist_set(
+                    cc,
+                    cm,
+                    Variant::U32(display_active as u32),
+                    PersistenceId::Display,
+                    Echo::None,
+                );
             }
             KeyEvent::Btn1 => activate_editable(Editable::McCready, cm, cc),
             KeyEvent::Btn2 => activate_editable(Editable::WaterBallast, cm, cc),

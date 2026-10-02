@@ -156,8 +156,13 @@ impl PersistenceItem {
         u32::from_le_bytes(self.data)
     }
 
-    pub fn to_f32(&self) -> f32 {
-        f32::from_le_bytes(self.data)
+    pub fn to_f32(&self) -> Result<f32, CoreError> {
+        let result = f32::from_le_bytes(self.data);
+        if result.is_normal() || result == 0.0 {
+            Ok(result)
+        } else {
+            Err(CoreError::ConversionError)
+        }
     }
 }
 
@@ -283,7 +288,8 @@ where
             PersistenceId::DeleteAll => self.eeprom.clear_all_data(),
             PersistenceId::UserProfile => {
                 self.user_profile = clamp(item.data[0], 0, 3);
-                self.eeprom.write_byte(eeprom::ADR_USER_PROFILE, self.user_profile)
+                self.eeprom
+                    .write_byte(eeprom::ADR_USER_PROFILE, self.user_profile)
             }
             _ => {
                 let address = self.item_address(item.id);

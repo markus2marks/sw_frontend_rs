@@ -214,39 +214,33 @@ impl DrainControl {
 
 pub struct FlashControl {
     pub pin_function: OutPinFunction,
+    pub test_counter: u8,
 }
 
 impl Default for FlashControl {
     fn default() -> Self {
         FlashControl {
             pin_function: OutPinFunction::None,
+            test_counter: 0,
         }
     }
 }
 
 impl FlashControl {
     pub fn tick_1s(&mut self, cm: &mut CoreModel) -> Option<PinState> {
-        match self.pin_function {
-            OutPinFunction::None => None,
-            OutPinFunction::Closed => {
-                if cm.sensor.airspeed.ias().to_km_h() > 40.0 {
-                    cm.control.hw_pins.out_flash = PinState::Low;
-                    Some(PinState::High)
-                } else {
-                    cm.control.hw_pins.out_flash = PinState::High;
-                    Some(PinState::Low)
-                }
-            }
-            OutPinFunction::Opened => {
-                if cm.sensor.airspeed.ias().to_km_h() > 40.0 {
-                    cm.control.hw_pins.out_flash = PinState::High;
-                    Some(PinState::Low)
-                } else {
-                    cm.control.hw_pins.out_flash = PinState::Low;
-                    Some(PinState::High)
-                }
-            }
+        if self.test_counter > 0 {
+            self.test_counter -= 1;
+            return self.switch_on(cm);
         }
+        if cm.sensor.airspeed.ias().to_km_h() > 40.0 {
+            self.switch_on(cm)
+        } else {
+            self.switch_off(cm)
+        }
+    }
+
+    pub fn activate_test(&mut self) {
+        self.test_counter = 10;
     }
 
     pub fn pin_function(&self) -> OutPinFunction {
@@ -255,6 +249,26 @@ impl FlashControl {
 
     pub fn set_pin_function(&mut self, pin_function: OutPinFunction) {
         self.pin_function = pin_function;
+    }
+
+    fn switch_on(&mut self, cm: &mut CoreModel) -> Option<PinState> {
+        let state = match self.pin_function {
+            OutPinFunction::None => return None,
+            OutPinFunction::Closed => PinState::Low,
+            OutPinFunction::Opened => PinState::High,
+        };
+        cm.control.hw_pins.out_flash = state;
+        Some(state)
+    }
+
+    fn switch_off(&mut self, cm: &mut CoreModel) -> Option<PinState> {
+        let state = match self.pin_function {
+            OutPinFunction::None => return None,
+            OutPinFunction::Closed => PinState::High,
+            OutPinFunction::Opened => PinState::Low,
+        };
+        cm.control.hw_pins.out_flash = state;
+        Some(state)
     }
 }
 
@@ -274,6 +288,7 @@ impl Default for SpeedToFlyControl {
 
 impl SpeedToFlyControl {
     pub fn set_state(&mut self, cm: &mut CoreModel, pin_state: PinState) {
+        cm.control.hw_pins.in_speed_to_fly = pin_state;
         self.vario_mode = match pin_state {
             PinState::High => match self.pin_function {
                 InTogglePinFunction::None => return,
@@ -288,7 +303,6 @@ impl SpeedToFlyControl {
                 InTogglePinFunction::OnToggled => !self.vario_mode,
             },
         };
-        cm.control.hw_pins.in_speed_to_fly = pin_state;
     }
 
     pub fn pin_function(&self) -> InTogglePinFunction {

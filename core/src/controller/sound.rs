@@ -1,8 +1,65 @@
 use crate::{CoreModel, IdleEvent, VarioMode};
 use num::clamp;
+use num_enum::FromPrimitive;
 
 #[allow(unused_imports)]
 use micromath::F32Ext;
+
+pub const SND_EXP_MUL: f32 = 0.138629; // -5 .. 5 two octaves
+
+#[derive(Clone, Copy, PartialEq, Debug, FromPrimitive)]
+#[repr(u8)]
+pub enum Waveform {
+    #[default]
+    Triangular,
+    Sawtooth,
+    Rectangular,
+    SineWave,
+}
+
+#[allow(unused)]
+pub const WAVEFORM_TRIANGULAR: &str = "Triangular";
+pub const WAVEFORM_SAWTOOTH: &str = "Sawtooth";
+pub const WAVEFORM_RECTANGULAR: &str = "Rectangular";
+pub const WAVEFORM_SINE_WAVE: &str = "Sine wave";
+
+impl From<&str> for Waveform {
+    fn from(value: &str) -> Self {
+        match value {
+            WAVEFORM_SAWTOOTH => Waveform::Sawtooth,
+            WAVEFORM_RECTANGULAR => Waveform::Rectangular,
+            WAVEFORM_SINE_WAVE => Waveform::SineWave,
+            _ => Waveform::Triangular,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct SoundParams {
+    pub frequency: u16,
+    pub continuous: bool,
+    pub gain: i8,
+    pub waveform: Waveform,
+}
+
+impl Default for SoundParams {
+    fn default() -> Self {
+        SoundParams {
+            frequency: 500,
+            continuous: false,
+            gain: 2,
+            waveform: Waveform::Triangular,
+        }
+    }
+}
+
+pub fn get_snd_spreading_factor(cm: &CoreModel) -> f32 {
+    cm.config.snd_exp_mul / SND_EXP_MUL
+}
+
+pub fn set_snd_spreading_factor(cm: &mut CoreModel, spreading_factor: f32) {
+    cm.config.snd_exp_mul = SND_EXP_MUL * spreading_factor;
+}
 
 #[allow(unused)]
 pub enum SoundScenario {
@@ -58,15 +115,15 @@ impl SoundControl {
             self.vario_sound(cm)
         };
 
-        cm.calculated.frequency = clamp(
+        cm.calculated.sound_params.frequency = clamp(
             frequency,
             cm.config.snd_min_freq as u16,
             cm.config.snd_max_freq as u16,
         );
-        cm.calculated.continuous = continuous;
+        cm.calculated.sound_params.continuous = continuous;
 
-        if gain != cm.calculated.gain {
-            cm.calculated.gain = gain;
+        if gain != cm.calculated.sound_params.gain {
+            cm.calculated.sound_params.gain = gain;
             let event = IdleEvent::SetGain(gain as u8);
 
             // send event to the idle loop, which handles the amplifier via i2c
@@ -123,21 +180,21 @@ impl SoundControl {
             0..=4 => (START_FREQ, false, 0), // silence
             5 => (START_FREQ, true, cm.control.alarm_volume),
             6..=10 => (
-                cm.calculated.frequency + INC_FREQ,
+                cm.calculated.sound_params.frequency + INC_FREQ,
                 true,
                 cm.control.alarm_volume,
             ),
             11 => (START_FREQ, false, 0), // silence
             12 => (START_FREQ, true, cm.control.alarm_volume),
             13..=17 => (
-                cm.calculated.frequency + INC_FREQ,
+                cm.calculated.sound_params.frequency + INC_FREQ,
                 true,
                 cm.control.alarm_volume,
             ),
             18 => (START_FREQ, false, 0), // silence
             19 => (START_FREQ, true, cm.control.alarm_volume),
             20..=24 => (
-                cm.calculated.frequency + INC_FREQ,
+                cm.calculated.sound_params.frequency + INC_FREQ,
                 true,
                 cm.control.alarm_volume,
             ),

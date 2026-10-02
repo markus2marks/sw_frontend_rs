@@ -58,6 +58,7 @@ pub struct Sensor {
     pub vertical_g_force: Acceleration,
     pub wind_vector: WindVector,
     pub larus_box_system_state: u32,
+    pub test_no: u8,
 }
 
 impl Default for Sensor {
@@ -91,6 +92,7 @@ impl Default for Sensor {
             average_wind: WindVector::new(0.0.km_h(), 0.0_f32.deg()),
             wind_vector: WindVector::new(0.0.km_h(), 0.0_f32.deg()),
             larus_box_system_state: 0,
+            test_no: 0,
         }
     }
 }
@@ -100,10 +102,14 @@ impl Sensor {
         (self.larus_box_system_state & 0x0001_0000) != 0
     }
 
+    pub fn roll_pitch_available(&self) -> bool {
+        !self.horizon_blocked()
+    }
+
     pub fn gnss_velocity_accuracy_bad(&self) -> bool {
         (self.larus_box_system_state & 0x0000_0004) != 0
     }
-    
+
     pub fn magnetic_disturbance_bad(&self) -> bool {
         (self.larus_box_system_state & 0x0000_0008) != 0
     }

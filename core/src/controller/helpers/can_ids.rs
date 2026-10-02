@@ -37,7 +37,7 @@ pub enum RemoteConfig {
 #[allow(dead_code)]
 #[derive(FromPrimitive)]
 #[repr(u16)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum CanConfigId {
     Volume = 0,
     MacCready = 1,
@@ -69,6 +69,7 @@ pub enum CanConfigId {
     AntSlaveDown = 0x200d,
     AntSlaveRight = 0x200e,
     VarioPressTc = 0x200f,
+    BlockHorizon = 0x2010,
 
     CmdMeasure1 = 0x3000,
     CmdMeasure2 = 0x3001,
@@ -76,6 +77,7 @@ pub enum CanConfigId {
     CmdCalcSensorOrientation = 0x3003,
     CmdFineTuneCalibration = 0x3004,
     CmdReset = 0x3005,
+    CmdTestFunction = 0x3006,
 }
 
 impl From<PersistenceId> for CanConfigId {

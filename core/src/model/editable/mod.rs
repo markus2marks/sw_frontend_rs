@@ -2,13 +2,13 @@ mod controller;
 mod glider_data;
 /// Elements that can be changed by the user
 ///
-/// Editables are always saved in the model or controllerand can be changed by the user. These
+/// Editables are always saved in the model or controller and can be changed by the user. These
 /// can be parameters, display selection, time constants or other data. With the help of this
 /// module, the implemented editor is able to display and change such data, save it and, if
 /// necessary, output it at the NMEA and CAN interfaces.
 ///
 /// New elements are added with the following steps:
-///   - First, the persistence layer is extended (src/controller/persistence.rs)
+///   - First, the persistence layer is extended (src/controller/persist.rs)
 ///     - Extend PersistenceId
 ///     - Extend restore_item()
 ///   - Then the enum Editable is extended by the new element (see below)
@@ -23,7 +23,7 @@ use glider_data::*;
 use model::*;
 use sensorbox::*;
 
-use crate::{utils::TString, CoreController, CoreModel};
+use crate::{utils::TString, CoreController, CoreModel, Date};
 use tfmt::Convert;
 
 #[repr(u8)]
@@ -47,6 +47,7 @@ pub enum Editable {
     Info2Stf,
     Info3Stf,
     McCready,
+    SoundSpreading,
     StfUpperLimit,
     StfLowerLimit,
     TcCircleHysteresis,
@@ -61,12 +62,14 @@ pub enum Editable {
     UsageCode,
     UsageMode,
     Volume,
+    Waveform,
 
     // controller
     DrainPinConfig,
     EnergyArrowMult,
     FactoryReset,
     FlashControl,
+    FlashTest,
     FlowEmpty,
     FlowSlope,
     GearPinConfig,
@@ -99,22 +102,20 @@ pub enum Editable {
     PitotOffset,
     PitotSpan,
     QnhDelta,
-    MagAutoCalib,
     VarioTc,
-    VarioIntTc,
-    WindTc,
-    MeanWindTc,
     GnssConfig,
     AntBaselen,
     AntSlaveDown,
     AntSlaveRight,
-    VarioPressTc,
+    BlockHorizon,
     CmdMeas1,
     CmdMeas2,
     CmdMeas3,
     CmdCalcOrientation,
     CmdFineTuneOrientation,
     CmdResetSensorbox,
+    CmdTestFunction,
+    CmdTestFunctionNumber,
 
     // general
     None,
@@ -123,11 +124,12 @@ pub enum Editable {
 
 #[derive(Clone, Copy)]
 pub enum Content {
-    F32(Option<f32>),
-    Enum(TString<16>),
-    String(TString<12>),
-    List(i32),
     Command(TString<16>),
+    Date(Option<Date>),
+    Enum(TString<16>),
+    F32(Option<f32>),
+    List(i32),
+    String(TString<12>),
 }
 
 #[derive(Clone, Copy)]
@@ -138,6 +140,17 @@ pub struct F32Params {
     pub big_inc: f32,
     pub dec_places: u8,
     pub unit: &'static str,
+}
+
+#[derive(Clone, Copy)]
+pub struct DateParams {
+    pub min: Date,
+    pub max: Date,
+    pub small_inc_plus: i16,
+    pub small_inc_minus: i16,
+    pub big_inc_plus: i16,
+    pub big_inc_minus: i16,
+    pub is_active: bool,
 }
 
 pub const MAX_ENUM_VARIANTS: usize = 5;
@@ -164,11 +177,12 @@ pub struct CmdParams {
 
 #[derive(Clone, Copy)]
 pub enum Params {
-    F32(F32Params),
-    Enum(EnumParams),
-    String(StringParams),
-    List(ListParams),
     Cmd(CmdParams),
+    Date(DateParams),
+    Enum(EnumParams),
+    F32(F32Params),
+    List(ListParams),
+    String(StringParams),
 }
 
 struct EditableFptrs {
@@ -209,6 +223,8 @@ trait EditableFuncs {
     }
 }
 
+pub const COMMAND_SENT: &str = "Command sent";
+
 struct None_;
 impl EditableFuncs for None_ {
     fn name() -> &'static str {
@@ -244,6 +260,7 @@ impl Editable {
             Editable::Info2Stf => Info2Stf::this(),
             Editable::Info3Stf => Info3Stf::this(),
             Editable::McCready => McCready::this(),
+            Editable::SoundSpreading => SoundSpreading::this(),
             Editable::StfUpperLimit => StfUpperLimit::this(),
             Editable::StfLowerLimit => StfLowerLimit::this(),
             Editable::TcCircleHysteresis => TcCircleHysteresis::this(),
@@ -258,12 +275,14 @@ impl Editable {
             Editable::UsageCode => UsageCode::this(),
             Editable::UsageMode => UsageMode::this(),
             Editable::Volume => Volume::this(),
+            Editable::Waveform => Waveform_::this(),
 
             // controller
             Editable::DrainPinConfig => DrainPinConfig::this(),
             Editable::EnergyArrowMult => EnergyArrowMult::this(),
             Editable::FactoryReset => FactoryReset::this(),
             Editable::FlashControl => FlashControl::this(),
+            Editable::FlashTest => FlashTest::this(),
             Editable::FlowEmpty => FlowEmpty::this(),
             Editable::FlowSlope => FlowSlope::this(),
             Editable::GearPinConfig => GearPinConfig::this(),
@@ -296,22 +315,20 @@ impl Editable {
             Editable::PitotOffset => PitotOffset::this(),
             Editable::PitotSpan => PitotSpan::this(),
             Editable::QnhDelta => QnhDelta::this(),
-            Editable::MagAutoCalib => MagAutoCalib::this(),
             Editable::VarioTc => VarioTc::this(),
-            Editable::VarioIntTc => VarioIntTc::this(),
-            Editable::WindTc => WindTc::this(),
-            Editable::MeanWindTc => MeanWindTc::this(),
             Editable::GnssConfig => GnssConfig::this(),
             Editable::AntBaselen => AntBaselen::this(),
             Editable::AntSlaveDown => AntSlaveDown::this(),
             Editable::AntSlaveRight => AntSlaveRight::this(),
-            Editable::VarioPressTc => VarioPressTc::this(),
+            Editable::BlockHorizon => BlockHorizon::this(),
             Editable::CmdMeas1 => CmdMeas1::this(),
             Editable::CmdMeas2 => CmdMeas2::this(),
             Editable::CmdMeas3 => CmdMeas3::this(),
             Editable::CmdCalcOrientation => CmdCalcOrientation::this(),
             Editable::CmdFineTuneOrientation => CmdFineTuneOrientation::this(),
             Editable::CmdResetSensorbox => CmdResetSensorbox::this(),
+            Editable::CmdTestFunction => CmdTestFunction::this(),
+            Editable::CmdTestFunctionNumber => CmdTestFunctionNumber::this(),
 
             // general
             Editable::None => None_::this(),
@@ -324,6 +341,23 @@ impl Editable {
         let params = self.params(cm);
 
         match params {
+            Params::Cmd(_params) => {
+                if let Content::Command(msg) = content {
+                    conv.write_str(msg.as_str()).unwrap();
+                }
+            }
+            Params::Date(params) => {
+                if params.is_active {
+                    if let Content::Date(Some(date)) = content {
+                        let date_string = date.as_string();
+                        conv.write_str(date_string.as_str()).unwrap();
+                    } else {
+                        conv.write_str("-").unwrap();
+                    }
+                } else {
+                    conv.write_str("-").unwrap();
+                }
+            }
             Params::Enum(_params) => {
                 if let Content::Enum(val) = content {
                     conv.write_str(val.as_str()).unwrap();
@@ -346,11 +380,6 @@ impl Editable {
             Params::String(_params) => {
                 if let Content::String(val) = content {
                     conv.write_str(val.as_str()).unwrap();
-                }
-            }
-            Params::Cmd(_params) => {
-                if let Content::Command(msg) = content {
-                    conv.write_str(msg.as_str()).unwrap();
                 }
             }
         }

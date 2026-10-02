@@ -19,6 +19,70 @@ Folgende Ansichten können jeweils festgelegt werden:
 - #keep[*Info 1 Content:*] Obere Zeile
 - #keep[*Info 2 Content:*] Untere Zeile
 - #keep[*Info 3 Content:*] Rechter Rand
+
+In den Ansichten können verschiedene Informationen dargestellt werden. Nachfolgend
+ist aufgelistet welche Informationen an welcher Stelle möglich sind:
+
+#keep[*Center Content*]:
+- #keep[*Single Arrow*] Einfacher Pfeil mit Windfahne
+- #keep[*Double Arrow*] Zwei Pfeile (Wind und mittlerer Wind)
+- #keep[*Dotted Assistant*] Thermik Assistent mit Punkten
+- #keep[*Spider Assistant*] Thermik Assistent in Form eines Spinnennetzes
+
+#keep[*Info 1 Content*]:
+- #keep[*None*] Nichts
+- #keep[*Avg Climb Rate*] Mittleres Steigen
+- #keep[*Bank Angle*] Querneigung. Das Symbol zeigt die Richtung der Querneigung, der Zahlenwert den Betrag
+- #keep[*Battery Voltage*] Batteriespannung
+- #keep[*Circle Diameter*] Durchmesser beim Kreisen
+- #keep[*Circle Max-Min*] Differenz maximales/minimales Steigen
+- #keep[*Drift Angle*] Driftwinkel
+- #keep[*Equivalent Air Speed*] Äquivalente Fluggeschwindigkeit. Hilfreich in Kurven und beim
+  Hochziehen, wenn der Lastfaktor die angezeigte Fluggeschwindigkeit erhöht. #keep[*Ve*] liefert
+  dann eine für den Strömungsabriss relevante Anzeige unabhängig von der Querneigung. Bei
+  Segelflugzeugen mit Wölbklappen ist #keep[*Ve*] außerdem die passende Referenz für die
+  Klappenstellung unter Last
+- #keep[*Flight Level*] Flugfläche
+- #keep[*G-Load*] Beschleunigung
+- #keep[*Heading*] Steuerkurs
+- #keep[*Indicated Air Speed*] Angezeigte Fluggeschwindigkeit
+- #keep[*Pitch Angle*] Längsneigung
+- #keep[*Slip Angle*] Schiebewinkel
+- #keep[*Speed to Fly*] Sollfahrt
+- #keep[*True Air Speed*] Wahre Geschwindigkeit gegenüber Luft
+- #keep[*True Course*] Wahrer Kurs
+- #keep[*UTC Time*] UTC Zeit
+
+#keep[*Info 2 Content*]:
+- #keep[*None*] Nichts
+- #keep[*Avg Climb Rate*] Mittleres Steigen
+- #keep[*Bank Angle*] Querneigung. Das Symbol zeigt die Richtung der Querneigung, der Zahlenwert den Betrag
+- #keep[*Battery Voltage*] Batteriespannung
+- #keep[*Circle Diameter*] Durchmesser beim Kreisen
+- #keep[*Circle Max-Min*] Differenz maximales/minimales Steigen
+- #keep[*Drift Angle*] Driftwinkel
+- #keep[*Equivalent Air Speed*] Äquivalente Fluggeschwindigkeit. Hilfreich in Kurven und beim
+  Hochziehen, wenn der Lastfaktor die angezeigte Fluggeschwindigkeit erhöht. #keep[*Ve*] liefert
+  dann eine für den Strömungsabriss relevante Anzeige unabhängig von der Querneigung. Bei
+  Segelflugzeugen mit Wölbklappen ist #keep[*Ve*] außerdem die passende Referenz für die
+  Klappenstellung unter Last
+- #keep[*Flight Level*] Flugfläche
+- #keep[*G-Load*] Beschleunigung
+- #keep[*Heading*] Steuerkurs
+- #keep[*Indicated Air Speed*] Angezeigte Fluggeschwindigkeit
+- #keep[*Pitch Angle*] Längsneigung
+- #keep[*Slip Angle*] Schiebewinkel
+- #keep[*Speed to Fly*] Sollfahrt
+- #keep[*True Air Speed*] Wahre Geschwindigkeit gegenüber Luft
+- #keep[*True Course*] Wahrer Kurs
+- #keep[*UTC Time*] UTC Zeit
+- #keep[*Wind, Avg Wind*] Wind, mittlerer Wind
+- #keep[*Wind and Delta*] Wind und Differenz zum mittleren Wind
+
+#keep[*Info 3 Content*]:
+- #keep[*None*] Nichts
+- #keep[*CLimbing*] Steigen, gemittelt über den kompletten Aufwind
+- #keep[*Speed to Fly*] Sollfahrt
 ]
 
 === Units
@@ -30,6 +94,13 @@ werche Maßeinheiten zur Anwendung kommen:
 - #keep[*Vertical Speed*] Maßeinheit der Vertikalgeschwindigkeit
 - #keep[*Height*] Maßeinheit der Höhenanzeige
 ]
+
+=== Block Horizon
+#tr[In bestimmten Wettbewerben ist die Nutzung des künstlichen Horizonts untersagt. Um die Konformität mit dem Reglement zu gewährleisten, kann die Funktion bis zu einem frei wählbaren Datum deaktiviert werden. Die Konfiguration ist nur bei aktivem Sensor und vorhandenem GPS-Empfang möglich.
+
+Nach Aufruf des Menüpunkts wird das aktuell im Sensor hinterlegte Datum angezeigt. Liegt dieses in der Vergangenheit, ist der künstliche Horizont aktiv. Erfolgt keine Eingabe (Timeout) oder wird die Auswahl bestätigt, bleibt die bestehende Einstellung unverändert.
+
+Durch Drehen des Einstellknopfes kann eine Sperre von bis zu 21 Tagen in der Zukunft definiert werden. Bitte beachten Sie, dass das Sperrdatum aus Sicherheitsgründen nur in die Zukunft verschoben und nicht aber zurückgesetzt werden kann.]
 
 === Energy Arrow
 
@@ -185,6 +256,24 @@ eingerichtet.
 
 Es wird von einem konstanten Durchfluss ausgegangen, der hier vorgegeben werden muss:] *Flow*. 
 
+=== Flash Control
+#tr[Die Funktionen zum Haubenblitzer sind wie folgt organisiert:
+
+- *Flash Control:* Das LARUS Vario Display ist in der Lage, einen Haubenblitzer anzusteuern, der
+              bei einer Geschwindigkeit von über 40 km/h gegenüber Luft aktiviert wird. Hier muss 
+              festgelegt werden, ob der Blitzer aktiv wird, wenn der Schalter offen oder 
+              geschlossen ist.
+- *Flash Test:* Der Haubenblitzer wird für 10 Sekunden aktiviert. Somit kann überprüft werden,
+              ob dieser korrekt funktioniert.
+]
+
+=== Sound
+#tr[Die Audioausgabe kann durch verschiedene Einstellungen an den persönlichen Geschmack angepasst werden.
+
+- *Center Frequency:* Gibt die Tonfrequenz bei 0 m/s Steigen an.
+- *Waveform:* Auswahl der Wellenform für die Audioausgabe: Sie können zwischen Rechteck, Sägezahn, Sinus und Dreieck wählen. Die Wellenform beeinflusst die Klangfarbe durch die Anzahl der enthaltenen Oberwellen. Je nach persönlichem Geschmack und dem verwendeten Lautsprecher können unterschiedliche Wellenformen als mehr oder weniger angenehm empfunden werden. Auf der Internetseite von Ilan Flint @waveforms können Sie sich einen Eindruck davon verschaffen.
+- *Spreading Factor:* Gibt an, um wie viel sich die Frequenz ändert, wenn das Segelflugzeug steigt oder sinkt. Ein Wert von 1,0 bedeutet, dass der Bereich von -5 m/s bis +5 m/s auf zwei Oktaven aufgeteilt wird.]
+
 === More Settings
 
 #tr[In diesem Abschnitt sind folgende Einstellungen zusammengefasst:
@@ -194,13 +283,7 @@ Es wird von einem konstanten Durchfluss ausgegangen, der hier vorgegeben werden 
 - *Battery Low:* Unterhalb der hier vorgegebenen Spannung wird das
               Batteriesymbol rot dargestellt. Wenn die Spannung zwischen den beiden Werten liegt,
               erfolgt die Darstellung des Batteriesymbols in Orange.
-- *Flash Control:* Das LARUS Vario Display ist in der Lage, einen Haubenblitzer anzusteuern, der
-              bei einer Geschwindigkeit von über 40 km/h gegenüber Luft aktiviert wird. Hier muss festgelegt werden, ob der Blitzer eingeschaltet wird, wenn der Schalter offen oder geschlossen ist. Hinweis: Die Verkabelung kann bei stehendem Flugzeug getestet werden, indem die Logik invertiert wird. Beispiel: Wenn der Haubenblitzer bei „Close” 
-              (über 40 km/h) blitzen soll, muss er bei stehendem Flugzeug bei der Einstellung „Open” an sein.
 ]
-
-=== Center Frequency
-#tr[Hier kann die Mittenfrequenz des Variometers vorgegeben werden.]
 
 == Polar Settings
 <polar-settings>
@@ -299,3 +382,8 @@ Achse Ihres Segelflugzeugs während der folgenden Vorgänge zu fixieren.
  
  #tr[Diese Einstellmöglichkeiten für die LARUS Sensoreinheit ist Experten vorbehalten und wird hier
  nicht näher beschreiben.]
+
+ === Test Function
+
+ #tr[Diese hier zur Verfügung gestellte Testfunktion ist den Entwicklern der Larus Sensor Plattform
+ vorbehalten.]

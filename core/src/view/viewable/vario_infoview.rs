@@ -29,14 +29,34 @@ pub enum LineView {
     WindAndAvgWind,
     SpeedToFly,
     TrueAirSpeed,
+    BatteryVoltage,
+    GLoad,
+    CircleDiameter,
+    CircleMaxMin,
+    Heading,
+    BankAngle,
+    SlipAngle,
+    IndicatedAirSpeed,
+    EquivalentAirspeed,
+    PitchAngle,
     LastElemntNotInUse,
 }
 
 const TOP_LINE_VIEW: &[LineView] = &[
     LineView::None,
     LineView::AverageClimbRate,
+    LineView::BankAngle,
+    LineView::BatteryVoltage,
+    LineView::CircleDiameter,
+    LineView::CircleMaxMin,
     LineView::DriftAngle,
+    LineView::EquivalentAirspeed,
     LineView::FlightLevel,
+    LineView::GLoad,
+    LineView::Heading,
+    LineView::IndicatedAirSpeed,
+    LineView::PitchAngle,
+    LineView::SlipAngle,
     LineView::SpeedToFly,
     LineView::TrueAirSpeed,
     LineView::TrueCourse,
@@ -46,8 +66,18 @@ const TOP_LINE_VIEW: &[LineView] = &[
 const BOTTOM_LINE_VIEW: &[LineView] = &[
     LineView::None,
     LineView::AverageClimbRate,
+    LineView::BankAngle,
+    LineView::BatteryVoltage,
+    LineView::CircleDiameter,
+    LineView::CircleMaxMin,
     LineView::DriftAngle,
+    LineView::EquivalentAirspeed,
     LineView::FlightLevel,
+    LineView::GLoad,
+    LineView::Heading,
+    LineView::IndicatedAirSpeed,
+    LineView::PitchAngle,
+    LineView::SlipAngle,
     LineView::SpeedToFly,
     LineView::TrueAirSpeed,
     LineView::TrueCourse,
@@ -113,12 +143,22 @@ impl LineView {
             LineView::AverageClimbRate => "Avg Climb Rate",
             LineView::DriftAngle => "Drift Angle",
             LineView::FlightLevel => "Flight Level",
+            LineView::Heading => "Heading",
             LineView::SpeedToFly => "Speed to Fly",
             LineView::TrueAirSpeed => "True Air Speed",
             LineView::TrueCourse => "True Course",
             LineView::UtcTime => "UTC Time",
+            LineView::BatteryVoltage => "Battery Voltage",
             LineView::WindAndAvgWind => "Wind, avg Wind",
             LineView::WindAndDelta => "Wind and Delta",
+            LineView::GLoad => "G-Load",
+            LineView::CircleDiameter => "Circle Diameter",
+            LineView::CircleMaxMin => "Circle Max-Min",
+            LineView::BankAngle => "Bank Angle",
+            LineView::SlipAngle => "Slip Angle",
+            LineView::IndicatedAirSpeed => "Indicated Air Speed",
+            LineView::EquivalentAirspeed => "Equivalent Air Speed",
+            LineView::PitchAngle => "Pitch Angle",
             LineView::None => "None",
             LineView::LastElemntNotInUse => "",
         }
@@ -134,12 +174,22 @@ impl LineView {
             LineView::AverageClimbRate => draw_average_climb_rate(display, cm, pos),
             LineView::DriftAngle => draw_drift_angle(display, cm, pos),
             LineView::FlightLevel => draw_flight_level(display, cm, pos),
+            LineView::Heading => draw_heading(display, cm, pos),
             LineView::SpeedToFly => draw_speed_to_fly(display, cm, pos),
             LineView::TrueAirSpeed => draw_true_air_speed(display, cm, pos),
             LineView::TrueCourse => draw_true_course(display, cm, pos),
             LineView::UtcTime => draw_utc_time(display, cm, pos),
+            LineView::BatteryVoltage => draw_battery_voltage(display, cm, pos),
             LineView::WindAndAvgWind => draw_wind_and_avg_wind(display, cm, pos),
             LineView::WindAndDelta => draw_wind_and_delta(display, cm, pos),
+            LineView::GLoad => draw_g_load(display, cm, pos),
+            LineView::CircleDiameter => draw_circle_diameter(display, cm, pos),
+            LineView::CircleMaxMin => draw_circle_max_min(display, cm, pos),
+            LineView::BankAngle => draw_bank_angle(display, cm, pos),
+            LineView::SlipAngle => draw_slip_angle(display, cm, pos),
+            LineView::IndicatedAirSpeed => draw_indicated_air_speed(display, cm, pos),
+            LineView::EquivalentAirspeed => draw_equivalent_air_speed(display, cm, pos),
+            LineView::PitchAngle => draw_pitch_angle(display, cm, pos),
             LineView::LastElemntNotInUse => Ok(()),
         }
     }
@@ -311,6 +361,24 @@ where
         img1,
         tas.as_str(),
         img2,
+        &cm.device_const.big_font,
+        cm.palette(),
+    )
+}
+
+fn draw_heading<D>(display: &mut D, cm: &CoreModel, pos: Point) -> Result<(), CoreError>
+where
+    D: DrawTarget<Color = Colors, Error = CoreError> + DrawImage,
+{
+    let heading = cm.sensor.euler_yaw.to_degrees();
+    let s = tformat!(8, "{:.0}°", heading).unwrap();
+
+    draw_centered_line(
+        display,
+        pos,
+        Some(Image::new(cm.device_const.images.yaw)),
+        s.as_str(),
+        None,
         &cm.device_const.big_font,
         cm.palette(),
     )
@@ -556,4 +624,221 @@ where
         display,
     )?;
     Ok(())
+}
+
+fn draw_indicated_air_speed<D>(display: &mut D, cm: &CoreModel, pos: Point) -> Result<(), CoreError>
+where
+    D: DrawTarget<Color = Colors, Error = CoreError> + DrawImage,
+{
+    let ias = cm
+        .config
+        .unit_horizontal_speed
+        .value_str(cm.sensor.airspeed.ias());
+    let img1 = Some(Image::new(cm.device_const.images.ias));
+    let img2 = Some(cm.config.unit_horizontal_speed.image(cm));
+    draw_centered_line(
+        display,
+        pos,
+        img1,
+        ias.as_str(),
+        img2,
+        &cm.device_const.big_font,
+        cm.palette(),
+    )
+}
+
+fn draw_equivalent_air_speed<D>(
+    display: &mut D,
+    cm: &CoreModel,
+    pos: Point,
+) -> Result<(), CoreError>
+where
+    D: DrawTarget<Color = Colors, Error = CoreError> + DrawImage,
+{
+    let ve_str = if let Some(eas) = cm.sensor.airspeed.eas(cm.sensor.g_force) {
+        cm.config.unit_horizontal_speed.value_str(eas)
+    } else {
+        heapless::String::<3>::try_from("--").unwrap()
+    };
+    let img1 = Some(Image::new(cm.device_const.images.ve));
+    let img2 = Some(cm.config.unit_horizontal_speed.image(cm));
+    draw_centered_line(
+        display,
+        pos,
+        img1,
+        ve_str.as_str(),
+        img2,
+        &cm.device_const.big_font,
+        cm.palette(),
+    )
+}
+
+fn draw_bank_angle<D>(display: &mut D, cm: &CoreModel, pos: Point) -> Result<(), CoreError>
+where
+    D: DrawTarget<Color = Colors, Error = CoreError> + DrawImage,
+{
+    if !cm.sensor.roll_pitch_available() {
+        return draw_centered_line(
+            display,
+            pos,
+            None,
+            "--",
+            None,
+            &cm.device_const.big_font,
+            cm.palette(),
+        );
+    }
+
+    let roll_deg = cm.sensor.euler_roll.to_degrees();
+    let s = tformat!(8, "{:.0}°", roll_deg.abs()).unwrap();
+    let img_bytes = if roll_deg < 0.0 {
+        cm.device_const.images.roll_left
+    } else {
+        cm.device_const.images.roll_right
+    };
+    let img = Image::new(img_bytes);
+    let txt_x = pos.x + img.width() as i32 / 2;
+
+    let result = cm.device_const.big_font.render_aligned(
+        s.as_str(),
+        Point::new(txt_x, pos.y),
+        VerticalPosition::Center,
+        HorizontalAlignment::Center,
+        FontColor::Transparent(cm.palette().vario.value),
+        display,
+    )?;
+    if let Some(rectangle) = result {
+        let pic_x = txt_x - (rectangle.size.width / 2 + img.width()) as i32;
+        let pic_y = pos.y - img.height() as i32 / 2;
+        let pic_pos = Point::new(pic_x, pic_y);
+        img.draw(display, pic_pos, Some(cm.palette().vario.icon))?;
+    }
+
+    Ok(())
+}
+
+fn draw_slip_angle<D>(display: &mut D, cm: &CoreModel, pos: Point) -> Result<(), CoreError>
+where
+    D: DrawTarget<Color = Colors, Error = CoreError> + DrawImage,
+{
+    let s = tformat!(8, "{:.0}°", cm.sensor.slip_angle.to_degrees()).unwrap();
+    draw_centered_line(
+        display,
+        pos,
+        Some(Image::new(cm.device_const.images.slip)),
+        s.as_str(),
+        None,
+        &cm.device_const.big_font,
+        cm.palette(),
+    )
+}
+
+fn draw_pitch_angle<D>(display: &mut D, cm: &CoreModel, pos: Point) -> Result<(), CoreError>
+where
+    D: DrawTarget<Color = Colors, Error = CoreError> + DrawImage,
+{
+    let s = if cm.sensor.roll_pitch_available() {
+        tformat!(8, "{:.0}°", cm.sensor.euler_pitch.to_degrees()).unwrap()
+    } else {
+        heapless::String::<8>::try_from("--").unwrap()
+    };
+    draw_centered_line(
+        display,
+        pos,
+        Some(Image::new(cm.device_const.images.pitch)),
+        s.as_str(),
+        None,
+        &cm.device_const.big_font,
+        cm.palette(),
+    )
+}
+
+fn draw_g_load<D>(display: &mut D, cm: &CoreModel, pos: Point) -> Result<(), CoreError>
+where
+    D: DrawTarget<Color = Colors, Error = CoreError> + DrawImage,
+{
+    let g = cm.sensor.g_force.to_m_s2() / 9.81;
+    let s = tformat!(10, "{:.2}", g).unwrap();
+    draw_centered_line(
+        display,
+        pos,
+        Some(Image::new(cm.device_const.images.g_load)),
+        s.as_str(),
+        Some(Image::new(cm.device_const.images.g)),
+        &cm.device_const.big_font,
+        cm.palette(),
+    )
+}
+
+fn draw_circle_diameter<D>(display: &mut D, cm: &CoreModel, pos: Point) -> Result<(), CoreError>
+where
+    D: DrawTarget<Color = Colors, Error = CoreError> + DrawImage,
+{
+    let s = if cm.calculated.circle_diameter_valid {
+        cm.config
+            .unit_height
+            .value_str(cm.calculated.circle_diameter)
+    } else {
+        heapless::String::<5>::try_from("--").unwrap()
+    };
+    draw_centered_line(
+        display,
+        pos,
+        Some(Image::new(cm.device_const.images.circle_diameter)),
+        s.as_str(),
+        Some(cm.config.unit_height.image(cm)),
+        &cm.device_const.big_font,
+        cm.palette(),
+    )
+}
+
+fn draw_circle_max_min<D>(display: &mut D, cm: &CoreModel, pos: Point) -> Result<(), CoreError>
+where
+    D: DrawTarget<Color = Colors, Error = CoreError> + DrawImage,
+{
+    let s = if cm.calculated.circle_max_min_valid {
+        cm.config
+            .unit_vertical_speed
+            .value_str(cm.calculated.circle_max_min_last)
+    } else {
+        heapless::String::<5>::try_from("--").unwrap()
+    };
+    draw_centered_line(
+        display,
+        pos,
+        Some(Image::new(cm.device_const.images.circle_delta)),
+        s.as_str(),
+        Some(cm.config.unit_vertical_speed.image(cm)),
+        &cm.device_const.big_font,
+        cm.palette(),
+    )
+}
+
+fn draw_battery_voltage<D>(display: &mut D, cm: &CoreModel, pos: Point) -> Result<(), CoreError>
+where
+    D: DrawTarget<Color = Colors, Error = CoreError> + DrawImage,
+{
+    let voltage = cm.device.supply_voltage;
+    let s = if voltage > 0.1 {
+        tformat!(6, "{:.1}", voltage).unwrap()
+    } else {
+        heapless::String::<6>::try_from("---").unwrap()
+    };
+
+    let img1 = if voltage > 0.1 {
+        Some(Image::new(cm.device_const.images.battery))
+    } else {
+        None
+    };
+    let img2 = Some(Image::new(cm.device_const.images.v));
+
+    draw_centered_line(
+        display,
+        pos,
+        img1,
+        s.as_str(),
+        img2,
+        &cm.device_const.big_font,
+        cm.palette(),
+    )
 }
