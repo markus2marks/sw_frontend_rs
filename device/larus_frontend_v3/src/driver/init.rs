@@ -84,21 +84,21 @@ pub fn hw_init(
     // Constrain and freeze power, save a little bit power, optimum is at vos3 / 200 MHz
     // let pwrcfg = dp.PWR.constrain().vos3().freeze();
     // Constrain and Freeze power
-    let pwrcfg = dp.PWR.constrain().freeze();
-    let ltdc_freq = 18_400.kHz();   
+    let pwrcfg = dp.PWR.constrain().smps().freeze();
+    let ltdc_freq = 20.MHz();   
     let mut ccdr = dp
-        .RCC
+        .RCC    
         .constrain()
-        .use_hse(16.MHz())
+        .use_hse(25.MHz())
          .sys_ck(400.MHz())
         // FMC will run at 100MHz, as this clock is further divided by 2
          .pll2_p_ck(200.MHz())
-         .pll2_q_ck(200.MHz() / 2)
+         .pll2_q_ck(200.MHz())
         .pll2_r_ck(100.MHz())
         .pll2_strategy(PllConfigStrategy::Iterative)
         // LTDC
-        .pll3_p_ck(92.MHz())
-        .pll3_q_ck(23.MHz())
+        .pll3_p_ck(100.MHz())
+        .pll3_q_ck(25.MHz())
         .pll3_r_ck(ltdc_freq)
         .pll3_strategy(PllConfigStrategy::Iterative)
         .freeze(pwrcfg, &dp.SYSCFG);
@@ -118,6 +118,8 @@ pub fn hw_init(
     let gpiob = dp.GPIOB.split(ccdr.peripheral.GPIOB);
     let gpioc = dp.GPIOC.split(ccdr.peripheral.GPIOC);
     let gpiod = dp.GPIOD.split(ccdr.peripheral.GPIOD);
+    let gpioe = dp.GPIOE.split(ccdr.peripheral.GPIOE);
+    let gpiof = dp.GPIOF.split(ccdr.peripheral.GPIOF);
     let gpiog = dp.GPIOG.split(ccdr.peripheral.GPIOG);
     let gpioh = dp.GPIOH.split(ccdr.peripheral.GPIOH);
     let gpioi = dp.GPIOI.split(ccdr.peripheral.GPIOI);
@@ -125,15 +127,15 @@ pub fn hw_init(
     let gpiok = dp.GPIOK.split(ccdr.peripheral.GPIOK);
 
     // Switch LCD Backlight off
-    let mut backlight_control = gpioc.pc6.into_push_pull_output();
+    let mut backlight_control = gpiob.pb10.into_push_pull_output();
     backlight_control.set_high();
 
     // Setup ----------> The front key interface
     let keyboard = {
-        let keyboard_pins = KeyboardPins::new(gpioa.pa3);
-        let input_pins = InputPins::new(gpiob.pb11, gpiob.pb13, gpiob.pb14, gpioh.ph7);
-        let enc1_res = Enc1Res::new(ccdr.peripheral.TIM5, dp.TIM5, gpioa.pa0, gpioa.pa1);
-        let enc2_res = Enc2Res::new(ccdr.peripheral.TIM3, dp.TIM3, gpiob.pb4.into(), gpioc.pc7);
+        let keyboard_pins = KeyboardPins::new(gpiof.pf9);
+        let input_pins = InputPins::new(gpioj.pj12, gpioj.pj13, gpioj.pj14, gpioj.pj15);
+        let enc1_res = Enc1Res::new(ccdr.peripheral.TIM5, dp.TIM5, gpioa.pa0, gpioh.ph11);
+        let enc2_res = Enc2Res::new(ccdr.peripheral.TIM3, dp.TIM3, gpiob.pb5, gpioc.pc6);
         Keyboard::new(
             keyboard_pins, 
             input_pins, 
@@ -150,7 +152,7 @@ pub fn hw_init(
             .FDCAN
             .kernel_clk_mux(rec::FdcanClkSel::Pll1Q);
         let fdcan_1 = dp.FDCAN1;
-        init_can(fdcan_prec, fdcan_1, gpiob.pb8, gpiob.pb9, c_tx_irq_frames)
+        init_can(fdcan_prec, fdcan_1, gpioh.ph14, gpioh.ph13, c_tx_irq_frames)
     };
 
     let rng = dp.RNG.constrain(ccdr.peripheral.RNG, &ccdr.clocks);
@@ -164,18 +166,17 @@ pub fn hw_init(
 
     // Setup ----------> CoreModel
     let mut core_model = CoreModel::new(&&DEVICE_CONST, uuid());       
-;
 
     // Setup ----------> Frame buffer, Display
     //set imu pins from display
-    let mut im2 = gpiob.pb12.into_push_pull_output();
+    let mut im2 = gpiob.pb8.into_push_pull_output();
     im2.set_high();
 
-    let mut im0 = gpioi.pi1.into_push_pull_output();
-    im0.set_high();
+    //let mut im0 = gpioi.pi1.into_push_pull_output();
+    //im0.set_high();
 
-    let mut im1 = gpioi.pi3.into_push_pull_output();
-    im1.set_low();
+    //let mut im1 = gpioi.pi3.into_push_pull_output();
+    //im1.set_low();
 
      let dev_view = {  
         let ltdc = Ltdc::init(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
@@ -183,9 +184,9 @@ pub fn hw_init(
 // let mut ltdc = hal_ltdc::Ltdc::new(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
         // ltdc.init(DISPLAY_CONFIGURATION);
 
-        let dsi_pll_config = unsafe { DsiPllConfig::manual(32, 1, 0, 4) };
+        let dsi_pll_config = unsafe { DsiPllConfig::manual(120, 4, 0, 3) };
 
-        let hse_freq = 16.MHz();
+        let hse_freq = 25.MHz();
         let dsi_config: DsiConfig = DsiConfig {
             mode: DsiMode::Video {
             // mode: DsiVideoMode::NonBurstWithSyncEvents,
@@ -196,8 +197,8 @@ pub fn hw_init(
             hse_freq,
             ltdc_freq,
             interrupts: DsiInterrupts::None,
-            color_coding_host: ColorCoding::TwentyFourBits,
-            color_coding_wrapper: ColorCoding::TwentyFourBits,
+            color_coding_host: ColorCoding::EighteenBitsConfig2,
+            color_coding_wrapper: ColorCoding::EighteenBitsConfig2,
             lp_size: 0, 
             vlp_size: 0,
         };
@@ -222,10 +223,10 @@ pub fn hw_init(
 
 
         dsi_host.configure_phy_timers(DsiPhyTimers {
-            dataline_hs2lp: 16,
-            dataline_lp2hs: 26,
-            clock_hs2lp: 29,
-            clock_lp2hs: 34,
+            dataline_hs2lp: 18,
+            dataline_lp2hs: 30,
+            clock_hs2lp: 32,
+            clock_lp2hs: 40,
             dataline_max_read_time: 2,
             stop_wait_time: 0,
         });
@@ -269,6 +270,21 @@ pub fn hw_init(
         )
     };
 
+
+    //setup ----------> qspi
+    let qspi = Flash::new(
+        dp.QUADSPI,
+        &ccdr.clocks,
+        gpiof.pf10, // CLK
+        gpiog.pg6,  // BK1_NCS
+        gpiod.pd11, // IO0
+        gpiod.pd12, // IO1
+        gpioe.pe2,  // IO2
+        gpiod.pd13, // IO3
+        ccdr.peripheral.QSPI,
+    );
+
+
     // Setup ----------> Idleloop
     let idle_loop = {
         let mut wp = gpioc.pc5.into_push_pull_output();
@@ -303,6 +319,7 @@ pub fn hw_init(
         let idle_loop = IdleLoop::new(
             output_pins,
             i2c,
+            qspi,               // neu, zwischen i2c und watchdog
             watchdog,
             c_idle_events,
             p_persistence_items,
@@ -341,6 +358,8 @@ pub fn hw_init(
     // set time of controller to current time
     dev_controller.set_ms(timestamp_ms());
 
+
+    
     info!("Larus init finished");
 
     (

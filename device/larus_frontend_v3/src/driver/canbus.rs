@@ -15,8 +15,8 @@ use stm32h7xx_hal::{can, gpio::Pin, gpio::Speed, pac::FDCAN1, prelude::*, rcc::r
 pub fn init_can<const MAX_TX: usize>(
     fdcan_prec: Fdcan,
     fdcan_1: FDCAN1,
-    rx: Pin<'B', 8>,
-    tx: Pin<'B', 9>,
+    rx: Pin<'H', 14>,
+    tx: Pin<'H', 13>,
     c_tx_irq_frames: CTxIrqFrames<MAX_TX>,
 ) -> (CanTx<MAX_TX>, CanRx) {
     let mut can = {

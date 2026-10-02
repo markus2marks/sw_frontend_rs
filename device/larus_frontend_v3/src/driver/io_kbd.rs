@@ -41,13 +41,13 @@ pub struct Keyboard {
 }
 
 pub struct KeyboardPins {
-    pub btn_enc: Pin<'A', 3, Input>,
+    pub btn_enc: Pin<'F', 9, Input>,
 }
 
 impl KeyboardPins {
-    pub fn new(btn_enc: Pin<'A', 3>) -> Self {
+    pub fn new(btn_enc: Pin<'F', 9>) -> Self {
         KeyboardPins {
-            btn_enc: btn_enc.into_input(),
+            btn_enc: btn_enc.into_input().internal_pull_up(true),
         }
     }
 }
@@ -56,11 +56,11 @@ pub struct Enc1Res {
     tim_p_1: Tim5,
     tim_enc_1: TIM5,
     enc_1a: Pin<'A', 0>,
-    enc_1b: Pin<'A', 1>,
+    enc_1b: Pin<'H', 11>,
 }
 
 impl Enc1Res {
-    pub fn new(tim_p_1: Tim5, tim_enc_1: TIM5, enc_1a: Pin<'A', 0>, enc_1b: Pin<'A', 1>) -> Self {
+    pub fn new(tim_p_1: Tim5, tim_enc_1: TIM5, enc_1a: Pin<'A', 0>, enc_1b: Pin<'H', 11>) -> Self {
         Enc1Res {
             tim_p_1,
             tim_enc_1,
@@ -73,12 +73,12 @@ impl Enc1Res {
 pub struct Enc2Res {
     tim_p_2: Tim3,
     tim_enc_2: TIM3,
-    enc_2a: Pin<'B', 4>,
-    enc_2b: Pin<'C', 7>,
+    enc_2a: Pin<'B', 5>,
+    enc_2b: Pin<'C', 6>,
 }
 
 impl Enc2Res {
-    pub fn new(tim_p_2: Tim3, tim_enc_2: TIM3, enc_2a: Pin<'B', 4>, enc_2b: Pin<'C', 7>) -> Self {
+    pub fn new(tim_p_2: Tim3, tim_enc_2: TIM3, enc_2a: Pin<'B', 5>, enc_2b: Pin<'C', 6>) -> Self {
         Enc2Res {
             tim_p_2,
             tim_enc_2,
@@ -89,24 +89,24 @@ impl Enc2Res {
 }
 
 pub struct InputPins {
-    di1: Pin<'B', 11, Input>,
-    di2: Pin<'B', 13, Input>,
-    di3: Pin<'B', 14, Input>,
-    di4: Pin<'H', 7, Input>,
+    di1: Pin<'J', 12, Input>,
+    di2: Pin<'J', 13, Input>,
+    di3: Pin<'J', 14, Input>,
+    di4: Pin<'J', 15, Input>,
 }
 
 impl InputPins {
     pub fn new(
-        di1: Pin<'B', 11>,
-        di2: Pin<'B', 13>,
-        di3: Pin<'B', 14>,
-        di4: Pin<'H', 7>,
+        di1: Pin<'J', 12>,
+        di2: Pin<'J', 13>,
+        di3: Pin<'J', 14>,
+        di4: Pin<'J', 15>,
     ) -> Self {
         InputPins {
-            di1: di1.into_input(),
-            di2: di2.into_input(),
-            di3: di3.into_input(),
-            di4: di4.into_input(),
+            di1: di1.into_input().internal_pull_down(true),
+            di2: di2.into_input().internal_pull_down(true),
+            di3: di3.into_input().internal_pull_down(true),
+            di4: di4.into_input().internal_pull_down(true),
         }
     }
 }
@@ -123,8 +123,14 @@ impl Keyboard {
         q_events: &'static QEvents,
     ) -> Self {
         // Config encoder 1 port pins
-        let _ = enc1_res.enc_1a.into_alternate::<2>(); // Set to alternate function 2
-        let _ = enc1_res.enc_1b.into_alternate::<2>(); // Set to alternate function 2
+
+        let _ = enc1_res.enc_1a
+            .into_alternate::<2>()
+            .internal_pull_up(true);
+
+        let _ = enc1_res.enc_1b
+            .into_alternate::<2>()
+            .internal_pull_up(true);
 
         // Encoder 1
         // Timer 5 ch 1 -> PA0 (Encoder 1A)
@@ -145,9 +151,13 @@ impl Keyboard {
         let enc_1_cnt = tim_enc_1.cnt.read().cnt().bits();
 
         // Config encoder 2 port pins
-        let _ = enc2_res.enc_2a.into_alternate::<2>(); // Set to alternate function 2
-        let _ = enc2_res.enc_2b.into_alternate::<2>(); // Set to alternate function 2
+        let _ = enc2_res.enc_2a
+            .into_alternate::<2>()
+            .internal_pull_up(true);
 
+        let _ = enc2_res.enc_2b
+            .into_alternate::<2>()
+            .internal_pull_up(true);
         // Encoder 2
         // Timer 3 ch 1 -> PB4 (Encoder 2B)
         // Timer 3 ch 2 -> PA7 (Encoder 2A)

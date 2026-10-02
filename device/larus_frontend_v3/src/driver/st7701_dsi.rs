@@ -41,12 +41,6 @@ impl St7701 {
         // =========================================================
         // SLEEP OUT
         // =========================================================
-
-
-                dsi.write(DsiWriteCommand::DcsShortP1 {
-            arg: 0x29,
-            data: 0x00,
-        }).ok();
 delay.delay_ms(150);
         //         dsi.write(DsiWriteCommand::DcsShortP1 {
         //     arg: 0x23,
@@ -63,7 +57,7 @@ delay.delay_ms(150);
 delay.delay_ms(150);
         dsi.write(DsiWriteCommand::DcsShortP1 { arg: 0xEF, data: 0x08 });
         delay.delay_ms(150);
-        dsi.write(DsiWriteCommand::DcsShortP1 { arg: 0x3A, data: 0x7F });
+        dsi.write(DsiWriteCommand::DcsShortP1 { arg: 0x3A, data: 0x60 });
 delay.delay_ms(150);
         // =========================================================
         // BK10

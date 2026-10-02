@@ -2,7 +2,7 @@
 runner = [
   "probe-rs",
   "run",
-  "--chip", "STM32H747XIHx",
+  "--chip", "STM32H757XIHx",
   "--protocol", "swd",
   "--connect-under-reset",
   "--speed", "1000",

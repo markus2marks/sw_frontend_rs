@@ -1,12 +1,15 @@
 use defmt::trace;
 
 use crate::{driver::*, install_and_restart, update_available, DevController};
-use corelib::{CIdleEvents, CoreModel, DeviceEvent, Eeprom, Event, IdleEvent, PPersistenceItems, PinState, SdCardCmd};
+use corelib::{
+    profile_always_0, CIdleEvents, CoreModel, DeviceEvent, Eeprom, Event, IdleEvent, PPersistenceItems, PinState,
+    SdCardCmd,
+};
 use fugit::ExtU32;
 use stm32h7xx_hal::{
     gpio::{Output, Pin, PinState::High},
     device::I2C1,
-    i2c::{Error as I2cError, I2c},
+    i2c::I2c,
     independent_watchdog::IndependentWatchdog,
 };
 
@@ -26,7 +29,10 @@ impl OutputPins {
 
 pub struct IdleLoop {
     amplifier: Amplifier<I2cManager>,
-    // eeprom: Eeprom<Storage<I2cManager, I2cError>>,
+    // Persistenz: corelibs Eeprom-Logik, aber mit dem QSPI-Flash als Speicher
+    eeprom: Eeprom<FlashStorage>,
+    // Schreibt das Image der Persistenz verzögert in den Flash
+    flash_config: FlashConfig,
     queue_to_idle_task: CIdleEvents,
     queue_from_idle_task: PPersistenceItems,
     q_events: &'static QEvents,
@@ -38,6 +44,7 @@ impl IdleLoop {
     pub fn new(
         output_pins: OutputPins,
         i2c: I2c<I2C1>,
+        flash: Flash,
         mut watchdog: IndependentWatchdog,
         queue_to_idle_task: CIdleEvents,
         queue_from_idle_task: PPersistenceItems,
@@ -45,8 +52,10 @@ impl IdleLoop {
         cm: &mut CoreModel,
         dc: &mut DevController,
     ) -> Self {
-        let i2c = I2cManager::new(i2c);
-        // let eeprom = Storage::new(i2c).unwrap();
+        // I2C wird nur noch für den Verstärker gebraucht.
+        let _i2c = I2cManager::new(i2c);
+        let (flash_config, storage) = FlashConfig::new(flash);
+        let eeprom = Eeprom::new(storage, profile_always_0).unwrap();
         let amplifier = Amplifier::new(I2cManager::clone());
         dc.core().recalc_glider(cm);
 
@@ -67,7 +76,8 @@ impl IdleLoop {
         IdleLoop {
             output_pins,
             amplifier,
-            // eeprom,
+            eeprom,
+            flash_config,
             queue_to_idle_task,
             queue_from_idle_task,
             q_events,
@@ -80,15 +90,24 @@ impl IdleLoop {
         let mut restore_eeprom_items = true;
         loop {
 
+            // Geänderte Werte verzögert in den Flash schreiben.
+            if self
+                .flash_config
+                .flush_if_due(timestamp_ms(), || self.watchdog.feed())
+                .is_err()
+            {
+                trace!("Saving config to flash failed");
+            }
+
             if restore_eeprom_items {
-                // load all PersistencItems from eeprom and push the to application
-                // for item in self.eeprom.iter_over(corelib::EepromTopic::ConfigValues) {
-                //     while !self.queue_from_idle_task.ready() {
-                //         // wait for space in Queue
-                //         rtic::export::wfi()
-                //     }
-                //     let _ = self.queue_from_idle_task.enqueue(item);
-                // }
+                // load all PersistencItems from the config and push the to application
+                for item in self.eeprom.iter_over(corelib::EepromTopic::ConfigValues) {
+                    while !self.queue_from_idle_task.ready() {
+                        // wait for space in Queue
+                        rtic::export::wfi()
+                    }
+                    let _ = self.queue_from_idle_task.enqueue(item);
+                }
                 restore_eeprom_items = false;
             }
 
@@ -96,15 +115,16 @@ impl IdleLoop {
                 let idle_event = self.queue_to_idle_task.dequeue().unwrap();
                 match idle_event {
                     IdleEvent::SetEepromItem(item) => {
-                        trace!("Save to EEPROM '{:?}'", item.id);
-                        // self.eeprom.write_item(item).unwrap();
+                        trace!("Save to config '{:?}'", item.id);
+                        // Schreibt nur ins RAM-Image, in den Flash geht es verzögert
+                        self.eeprom.write_item(item).unwrap();
                     }
                     IdleEvent::ClearEepromItems(items_list) => {
-                        // self.eeprom.delete_items_list(items_list).unwrap();
+                        self.eeprom.delete_items_list(items_list).unwrap();
                     }
                     IdleEvent::RestoreEepromItems => restore_eeprom_items = true,
                     IdleEvent::RestoreToSandardProfile => {
-                        // let _ = self.eeprom.restore_standard();
+                        let _ = self.eeprom.restore_standard();
                     }
                     IdleEvent::FeedTheDog => self.watchdog.feed(),
                     IdleEvent::SetGain(gain) => {
@@ -117,6 +137,8 @@ impl IdleLoop {
                                 if self.q_events.enqueue(event).is_ok() {
                                     delay_ms(200); // Give the display a chance to update
                                     trace!("Sw update is accepted");
+                                    // Ungespeicherte Änderungen vor dem Neustart sichern
+                                    let _ = self.flash_config.flush_now(|| self.watchdog.feed());
                                     install_and_restart();
                                 }
                             }

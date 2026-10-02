@@ -31,17 +31,17 @@ where
     I2C: Read<Error = E> + Write<Error = E> + WriteRead<Error = E>,
 {
     fn write_byte(&mut self, address: u32, data: u8) -> Result<(), CoreError> {
-        self.eeprom
-            .write_byte(address, data)
-            .map_err(|_| CoreError::EepromOrI2c1)?;
+        // self.eeprom
+        //     .write_byte(address, data)
+        //     .map_err(|_| CoreError::EepromOrI2c1)?;
         delay_ms(10);
         Ok(())
     }
 
     fn write_page(&mut self, address: u32, data: &[u8]) -> Result<(), CoreError> {
-        self.eeprom
-            .write_page(address, data)
-            .map_err(|_| CoreError::EepromOrI2c1)?;
+        // self.eeprom
+        //     .write_page(address, data)
+        //     .map_err(|_| CoreError::EepromOrI2c1)?;
         delay_ms(10);
         Ok(())
     }

@@ -23,7 +23,7 @@
           {
             "coreIndex": 0,
             "programBinary": "./target/thumbv7em-none-eabihf/debug/vario",
-            "svdFile": "${workspaceRoot}/STM32H747_CM7.svd",
+            "svdFile": "${workspaceRoot}/STM32H757_CM7.svd",
             "rttEnabled": true,
             "rttChannelFormats": [
               {
@@ -58,7 +58,7 @@
           {
             "coreIndex": 0,
             "programBinary": "./target/thumbv7em-none-eabihf/release/vario",
-            "svdFile": "${workspaceRoot}/STM32H747_CM7.svd",
+            "svdFile": "${workspaceRoot}/STM32H757_CM7.svd",
             "rttEnabled": true,
             "rttChannelFormats": [
               {
@@ -93,7 +93,7 @@
           {
             "coreIndex": 0,
             "programBinary": "./target/thumbv7em-none-eabihf/debug/examples/io_kbd",
-            "svdFile": "${workspaceRoot}/STM32H747_CM7.svd",
+            "svdFile": "${workspaceRoot}/STM32H757_CM7.svd",
             "rttEnabled": true,
           }
         ],

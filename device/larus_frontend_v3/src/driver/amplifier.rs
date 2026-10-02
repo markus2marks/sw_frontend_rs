@@ -47,6 +47,6 @@ where
 
     fn write(&mut self, register: u8, value: u8) {
         let bytes = [register, value];
-        let _ = self.i2c.write(AMP_ADDR, &bytes);
+        let result = self.i2c.write(AMP_ADDR, &bytes);
     }
 }

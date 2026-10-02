@@ -24,6 +24,8 @@ mod sound;
 mod st7701_dsi;
 mod st7701s;
 mod sys_timer;
+mod flash;
+mod flash_config;
 
 pub use amplifier::*;
 pub use canbus::*;
@@ -31,6 +33,8 @@ pub use clut_colors::*;
 pub use display::*;
 pub use eeprom::*;
 pub use file_sys::*;
+pub use flash::*;
+pub use flash_config::*;
 pub use frame_buffer::*;
 pub use i2c_mgr::*;
 pub use init::*;

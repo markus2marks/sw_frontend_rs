@@ -81,7 +81,7 @@ impl DevController {
             }
             2 => {
                 let adc_value: u32 = self.adc.read(&mut self.temperature_pin).unwrap();
-                core_model.device.temperature_pcb = adc_value as f32 * 0.000045776367 - 0.5;
+                core_model.device. temperature_pcb= adc_value as f32 * 0.000045776367 - 0.5;
             }
             _ => (),
         }

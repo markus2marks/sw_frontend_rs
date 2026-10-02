@@ -207,6 +207,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-display-controller"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "abdb518d44a2eda3b8a5dfc27b60a4bbbf2bb87eee436796d54c290ee6cc6545"
+
+[[package]]
 name = "embedded-dma"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -827,6 +833,7 @@ dependencies = [
  "defmt-rtt",
  "display-interface",
  "eeprom24x",
+ "embedded-display-controller",
  "embedded-dma",
  "embedded-graphics",
  "embedded-hal 0.2.7",

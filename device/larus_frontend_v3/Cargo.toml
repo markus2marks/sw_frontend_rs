@@ -20,7 +20,7 @@ rtt-target = { version = "0.6.1", features = ["defmt"] }
 eeprom24x = "0.6.0"
 fdcan = "0.2"
 st7789 = "0.7.0"
-stm32h7xx-hal = { version = "0.16.0", features = ["rt", "stm32h747cm7", "fmc", "can", "sdmmc", "defmt", "dsi", "ltdc", "cm7"] }
+stm32h7xx-hal = { version = "0.16.0", features = ["rt","smps", "stm32h747cm7", "fmc", "can", "sdmmc", "defmt", "dsi", "ltdc", "cm7", "xspi"] }
 embedded-dma = "0.2.0"
 sdio-host = "0.9"
 embedded-sdmmc = { version = "0.7" }

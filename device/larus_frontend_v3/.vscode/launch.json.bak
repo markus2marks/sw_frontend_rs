@@ -10,7 +10,7 @@
         "request": "launch",
         "cwd": "${workspaceRoot}",
         "runtimeExecutable": "probe-rs",
-        "chip": "STM32H747XIHx",
+        "chip": "STM32H757XIHx",
         "preLaunchTask": "Cargo Build (debug)",
         "flashingConfig": {
           "flashingEnabled": true,
