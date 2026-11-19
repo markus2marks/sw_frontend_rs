@@ -21,7 +21,7 @@ impl NmeaTxRx {
     pub fn new(
         _dma1_stream1: Stream1<DMA1>,
         _dma1_stream2: Stream2<DMA1>,
-        tx: Pin<'A', 9>,
+        tx: Pin<'B', 14>,
         rx: Pin<'B', 15>,
         usart1: USART1,
         prec: Usart1,
@@ -31,7 +31,12 @@ impl NmeaTxRx {
         let tx = tx.into_alternate();
 
         // init usart with correct settings
-        let _serial = usart1.serial((tx, rx), 38_400.bps(), prec, clocks).unwrap();
+        let _serial = usart1.serial((tx, rx), 115_200.bps(), prec, clocks).unwrap();
+
+        // TEST: zeigen, mit welchem Takt und Teiler die HAL rechnet
+        let brr = unsafe { (*pac::USART1::ptr()).brr.read().bits() };
+        defmt::info!("USART1: pclk2={} Hz, BRR={}", clocks.pclk2().raw(), brr);
+
 
         unsafe {
             // configure usart1

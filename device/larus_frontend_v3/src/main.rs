@@ -213,10 +213,10 @@ mod app {
                 // do controller calculations
                 if controller.tick_1ms(core_model) {
                     rtic::pend(interrupt::DMA1_STR1); // check if there is something to send
-                    Some((
-                        core_model.calculated.frequency,
-                        core_model.calculated.continuous,
-                        core_model.calculated.gain,
+                   Some((
+                        core_model.calculated.sound_params.frequency,
+                        core_model.calculated.sound_params.continuous,
+                        core_model.calculated.sound_params.gain,
                     ))
                 } else {
                     None

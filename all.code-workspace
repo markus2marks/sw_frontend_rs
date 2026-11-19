@@ -1,6 +1,6 @@
 {
 	"folders": [
-		{
+				{
 			"name": "core",
 			"path": "core"
 		},
@@ -15,6 +15,10 @@
 		{
 			"name": "larus_frontend_v2",
 			"path": "device/larus_frontend_v2"
+		},
+		{
+			"name": "larus_frontend_v3",
+			"path": "device/larus_frontend_v3"
 		},
 		{
 			"name": "sim",

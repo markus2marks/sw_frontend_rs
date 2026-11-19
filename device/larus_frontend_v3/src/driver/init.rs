@@ -45,7 +45,7 @@ pub const DISPLAY_CONFIGURATION: DisplayConfiguration = DisplayConfiguration {
 
 pub type DevCanDispatch = CanDispatch<VDA, 8, MAX_TX_FRAMES, MAX_RX_FRAMES, DevRng>;
 
-pub const H7_HCLK: u32 = 400_000_000;
+pub const H7_HCLK: u32 = 200_000_000;
 
 pub fn hw_init(
     dp: DevicePeripherals,
@@ -91,14 +91,16 @@ pub fn hw_init(
         .constrain()
         .use_hse(25.MHz())
          .sys_ck(400.MHz())
+          .hclk(H7_HCLK.Hz())
+         .pll1_q_ck(50.MHz()) // CAN
         // FMC will run at 100MHz, as this clock is further divided by 2
-         .pll2_p_ck(200.MHz())
-         .pll2_q_ck(200.MHz())
+         .pll2_p_ck(100.MHz())
+         .pll2_q_ck(50.MHz())
         .pll2_r_ck(100.MHz())
         .pll2_strategy(PllConfigStrategy::Iterative)
         // LTDC
-        .pll3_p_ck(100.MHz())
-        .pll3_q_ck(25.MHz())
+        .pll3_p_ck(150.MHz())
+        .pll3_q_ck(150.MHz())
         .pll3_r_ck(ltdc_freq)
         .pll3_strategy(PllConfigStrategy::Iterative)
         .freeze(pwrcfg, &dp.SYSCFG);
@@ -127,14 +129,14 @@ pub fn hw_init(
     let gpiok = dp.GPIOK.split(ccdr.peripheral.GPIOK);
 
     // Switch LCD Backlight off
-    let mut backlight_control = gpiob.pb10.into_push_pull_output();
+    let mut backlight_control = gpiob.pb8.into_push_pull_output();
     backlight_control.set_high();
 
     // Setup ----------> The front key interface
     let keyboard = {
-        let keyboard_pins = KeyboardPins::new(gpiof.pf9);
+        let keyboard_pins = KeyboardPins::new(gpioa.pa0);
         let input_pins = InputPins::new(gpioj.pj12, gpioj.pj13, gpioj.pj14, gpioj.pj15);
-        let enc1_res = Enc1Res::new(ccdr.peripheral.TIM5, dp.TIM5, gpioa.pa0, gpioh.ph11);
+        let enc1_res = Enc1Res::new(ccdr.peripheral.TIM5, dp.TIM5, gpioh.ph10, gpioh.ph11);
         let enc2_res = Enc2Res::new(ccdr.peripheral.TIM3, dp.TIM3, gpiob.pb5, gpioc.pc6);
         Keyboard::new(
             keyboard_pins, 
@@ -168,15 +170,7 @@ pub fn hw_init(
     let mut core_model = CoreModel::new(&&DEVICE_CONST, uuid());       
 
     // Setup ----------> Frame buffer, Display
-    //set imu pins from display
-    let mut im2 = gpiob.pb8.into_push_pull_output();
-    im2.set_high();
 
-    //let mut im0 = gpioi.pi1.into_push_pull_output();
-    //im0.set_high();
-
-    //let mut im1 = gpioi.pi3.into_push_pull_output();
-    //im1.set_low();
 
      let dev_view = {  
         let ltdc = Ltdc::init(dp.LTDC, ccdr.peripheral.LTDC, &ccdr.clocks);
@@ -230,7 +224,6 @@ pub fn hw_init(
             dataline_max_read_time: 2,
             stop_wait_time: 0,
         });
-
 
         let mut lcd= St7701::new();
         lcd.init(&mut dsi_host, &mut delay);
@@ -328,8 +321,6 @@ pub fn hw_init(
             &mut dev_controller,
         );
 
-        // switch LCD backlight on, after eventually firmware update (avoids flickering)
-        backlight_control.set_low();
 
         idle_loop
     };
@@ -348,7 +339,7 @@ pub fn hw_init(
     let (nmea_tx, nmea_rx) = NmeaTxRx::new(
         streams.1,
         streams.2,
-        gpioa.pa9,
+        gpiob.pb14,
         gpiob.pb15,
         dp.USART1,
         ccdr.peripheral.USART1,

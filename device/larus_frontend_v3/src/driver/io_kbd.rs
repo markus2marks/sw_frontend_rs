@@ -41,11 +41,11 @@ pub struct Keyboard {
 }
 
 pub struct KeyboardPins {
-    pub btn_enc: Pin<'F', 9, Input>,
+    pub btn_enc: Pin<'A', 0, Input>,
 }
 
 impl KeyboardPins {
-    pub fn new(btn_enc: Pin<'F', 9>) -> Self {
+    pub fn new(btn_enc: Pin<'A', 0>) -> Self {
         KeyboardPins {
             btn_enc: btn_enc.into_input().internal_pull_up(true),
         }
@@ -55,12 +55,12 @@ impl KeyboardPins {
 pub struct Enc1Res {
     tim_p_1: Tim5,
     tim_enc_1: TIM5,
-    enc_1a: Pin<'A', 0>,
+    enc_1a: Pin<'H', 10>,
     enc_1b: Pin<'H', 11>,
 }
 
 impl Enc1Res {
-    pub fn new(tim_p_1: Tim5, tim_enc_1: TIM5, enc_1a: Pin<'A', 0>, enc_1b: Pin<'H', 11>) -> Self {
+    pub fn new(tim_p_1: Tim5, tim_enc_1: TIM5, enc_1a: Pin<'H', 10>, enc_1b: Pin<'H', 11>) -> Self {
         Enc1Res {
             tim_p_1,
             tim_enc_1,
